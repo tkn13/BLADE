@@ -91,3 +91,46 @@ std::vector<JobState> get_job_state(){
 
     return Job_State;
 }
+
+std::vector<NodeState> get_node_state(){
+
+    std::vector<NodeState> Node_State;
+
+    char* args[] = {
+            (char*)"sinfo", 
+            (char*)"-h", 
+            (char*)"-o", 
+            (char*)"%n %T", 
+            nullptr
+        };
+    
+    std::string raw_data = get_slurm_output(args);
+
+    if(raw_data.empty()) return Node_State;
+
+    std::stringstream ss(raw_data);
+    std::string line;
+
+    while(std::getline(ss, line)){
+
+        if(!line.empty()){
+
+            std::stringstream lineStream(line);
+            std::string node_id;
+            std::string node_state;
+
+            lineStream >> node_id >> node_state;
+
+            NodeState ns;
+            ns.node_id = node_id;
+            ns.node_state = node_state;
+
+            Node_State.push_back(ns);
+
+        }
+
+    }
+
+    return Node_State;
+}
+
