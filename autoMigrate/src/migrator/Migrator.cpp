@@ -8,6 +8,7 @@
 #include "SlurmInterface.h"
 #include "JobPacker.h"
 #include "Migrator.h"
+#include "NodeControl.h"
 
 std::shared_mutex system_mutex;
 
@@ -48,6 +49,7 @@ int migrate(std::atomic<bool>& running, std::condition_variable& cv, std::mutex&
             std::unique_lock<std::shared_mutex> lock(system_mutex);
             migrate();
             std::cout << "Migration done!" << std::endl;
+            node_control();
         }
         
         std::unique_lock<std::mutex> lk(mtx);

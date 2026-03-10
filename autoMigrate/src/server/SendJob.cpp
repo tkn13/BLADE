@@ -7,6 +7,7 @@
 
 #include "SendJob.h"
 #include "Migrator.h"
+#include "NodeControl.h"
 
 void send(std::vector<std::string> input) {
 
@@ -63,6 +64,8 @@ void send_job(int clientSocket) {
     }
     else{
         send(input);
+        node_control();
+
     }
     close(clientSocket);
 }
