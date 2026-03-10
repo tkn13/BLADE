@@ -14,15 +14,32 @@ void rearrangeJobs(std::vector<JobDetail>& jobDetails) {
     const std::vector<Node>& nodes = nodeList.getNodes();
     std::vector<int> nodecapacities;
 
+    //create new node list considering node from jobDetails srcNode
+    std::set<std::string> srcNodes;
+    for (const auto& job : jobDetails) {
+        srcNodes.insert(job.srcNode.getNodeName());
+    }
+
+	std::vector<Node> newNodes;
+    for (const auto& node : srcNodes) {
+        newNodes.push_back(nodeList.getNodeByName(node));
+    }
+
+    std::cout << "New node list: ";
+    for (const auto& node : newNodes) {
+        std::cout << node.getNodeName() << " ";
+    }
+    std::cout << std::endl;
+
     // Initialize node capacities
-    for (const auto& node : nodes) {
+    for (const auto& node : newNodes) {
         nodecapacities.push_back(node.getCpus());
     }
 
     for (auto& job : jobDetails) {
-        for (size_t i = 0; i < nodes.size(); ++i) {
+        for (size_t i = 0; i < newNodes.size(); ++i) {
             if (job.cpus <= nodecapacities[i]) {
-                job.destNode = nodes[i];
+                job.destNode = newNodes[i];
                 nodecapacities[i] -= job.cpus;
                 break;
             }

@@ -65,7 +65,8 @@ void send_job(int clientSocket) {
     }
     else{
         send(input);
-        node_control();
+        sleep(10);
+	node_control();
 
     }
     close(clientSocket);

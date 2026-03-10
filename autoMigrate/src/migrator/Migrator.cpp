@@ -49,7 +49,8 @@ int migrate(std::atomic<bool>& running, std::condition_variable& cv, std::mutex&
             std::unique_lock<std::shared_mutex> lock(system_mutex);
             migrate();
             std::cout << "Migration done!" << std::endl;
-            node_control();
+            sleep(10);
+	    node_control();
         }
         
         std::unique_lock<std::mutex> lk(mtx);
