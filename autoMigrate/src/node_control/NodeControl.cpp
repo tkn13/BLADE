@@ -11,14 +11,30 @@
 const std::map<std::string, std::string> NODE_HOST_MAP = {
     {"blade-n1", "cs-wk01"}, {"blade-n2", "cs-wk01"},
     {"blade-n3", "cs-wk02"}, {"blade-n4", "cs-wk02"},
-    {"blade-n5", "cs-wk03"}, {"blade-n6", "cs-wk03"},
+   // {"blade-n5", "cs-wk03"}, {"blade-n6", "cs-wk03"},
     {"blade-n7", "cs-wk04"}, {"blade-n8", "cs-wk04"}
 };
 
-void execute_remote_command(const std::string& hostname, const std::string& command) {
-    std::string ssh_cmd = "ssh " + hostname + " " + command;
-    std::cout << "Executing: " << ssh_cmd << std::endl;
-    // system(ssh_cmd.c_str()); // Uncomment this to actually run the commands
+// Helper to execute shell commands
+void run_cmd(const std::string& cmd) {
+    std::cout << "[EXEC] " << cmd << std::endl;
+    std::system(cmd.c_str()); // Uncomment to enable execution
+}
+
+void power_on_node(const std::string& nodename, const std::string& host) {
+    // 1. Physical/VM Power On
+    run_cmd("ssh " + host + " sudo virsh start " + nodename);
+    
+    // 2. Slurm State Update: Set to IDLE so it can accept jobs
+    run_cmd("sudo scontrol update NodeName=" + nodename + " State=IDLE");
+}
+
+void power_off_node(const std::string& nodename, const std::string& host) {
+    // 1. Physical/VM Power Off
+    run_cmd("ssh " + host + " sudo virsh shutdown " + nodename);
+    
+    // 2. Slurm State Update: Set to DOWN with a reason
+    run_cmd("sudo scontrol update NodeName=" + nodename + " State=DOWN Reason=\"Auto Power off by Blade\"");
 }
 
 void check_node_control(std::vector<NodeState> nodes, std::vector<JobState> jobs) {
@@ -26,40 +42,33 @@ void check_node_control(std::vector<NodeState> nodes, std::vector<JobState> jobs
         return j.job_state == "PENDING";
     });
 
-    // 1. Power On Logic
+    // 1. Power On Logic (Reactive)
     if (has_pending_jobs) {
-        std::vector<NodeState*> power_on_pool;
-
+        std::vector<NodeState*> off_pool;
         for (auto& node : nodes) {
-            // Only consider nodes we actually have in our host map
+            // Check if node is in a non-working state (down, drained, powered_down, etc.)
             if (NODE_HOST_MAP.count(node.node_id) && 
                 node.node_state != "idle" && 
                 node.node_state != "mixed" && 
                 node.node_state != "allocated") {
-                power_on_pool.push_back(&node);
+                off_pool.push_back(&node);
             }
         }
 
-        if (!power_on_pool.empty()) {
+        if (!off_pool.empty()) {
             std::random_device rd;
             std::mt19937 gen(rd());
-            std::uniform_int_distribution<> dis(0, power_on_pool.size() - 1);
+            std::uniform_int_distribution<> dis(0, off_pool.size() - 1);
             
-            NodeState* selected = power_on_pool[dis(gen)];
-            std::string host = NODE_HOST_MAP.at(selected->node_id);
-            
-            // Execute: ssh $hostname sudo virsh start $nodename
-            execute_remote_command(host, "sudo virsh start " + selected->node_id);
+            NodeState* selected = off_pool[dis(gen)];
+            power_on_node(selected->node_id, NODE_HOST_MAP.at(selected->node_id));
         }
     }
 
-    // 2. Power Off Logic
+    // 2. Power Off Logic (Aggressive)
     for (const auto& node : nodes) {
         if (node.node_state == "idle" && NODE_HOST_MAP.count(node.node_id)) {
-            std::string host = NODE_HOST_MAP.at(node.node_id);
-            
-            // Execute: ssh $hostname sudo virsh destroy $nodename
-            execute_remote_command(host, "sudo virsh destroy " + node.node_id);
+            power_off_node(node.node_id, NODE_HOST_MAP.at(node.node_id));
         }
     }
 }
@@ -69,6 +78,14 @@ void node_control() {
     // Standard Slurm data retrieval
     std::vector<JobState> jobState = get_job_state();
     std::vector<NodeState> nodeState = get_node_state();
+
+	for (const auto& job : jobState) {
+        std::cout << "Job ID: " << job.job_id << ", State: " << job.job_state << std::endl;
+    }
+
+    for(const auto& node : nodeState) {
+        std::cout << "Node ID: " << node.node_id << ", State: " << node.node_state << std::endl;
+    }
 
     check_node_control(nodeState, jobState);
 }
