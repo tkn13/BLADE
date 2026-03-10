@@ -18,7 +18,7 @@ void send(std::vector<std::string> input) {
     " -n " + input[2] +
     " -p " + input[3];
 
-    std::cout << command << std::endl;
+    std::cout << "[EXEC]" << command << std::endl;
     system(command.c_str());
 
 }
@@ -64,9 +64,14 @@ void send_job(int clientSocket) {
         send(clientSocket, errorMsg.c_str(), errorMsg.size(), 0);
     }
     else{
+        std::cout << "[INFO] Sending job to slurm." << std::endl;
         send(input);
-        sleep(10);
-	node_control();
+        std::cout << "[INFO] Job sent to slurm." << std::endl;
+        //delay a bit to let slurm update the job state after submission
+        sleep(5);
+        std::cout << "[INFO] Node Control is triggered." << std::endl;
+	    node_control();
+        std::cout << "[INFO] Node Control is ended." << std::endl;
 
     }
     close(clientSocket);

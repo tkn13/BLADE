@@ -21,11 +21,11 @@ int migrate() {
     rearrangeJobs(jobDetails);
 
     if (migrateDecision(jobDetails)) {
-        
+        std::cout << "[INFO] Migration needed." << std::endl;
 	    migrator(jobDetails);
 	
 	    for(const auto& jobDetail : jobDetails) {
-		std::cout << "Job ID: " << jobDetail.jobId 
+		std::cout << "[INFO] Job ID: " << jobDetail.jobId 
 		<< ", CPUs: " << jobDetail.cpus 
                 << ", SrcNode: " << jobDetail.srcNode.getNodeName() 
                 << ", DestNode: " << jobDetail.destNode.getNodeName()
@@ -33,7 +33,7 @@ int migrate() {
     		}
 
    } else {
-        //std::cout << "No migration needed." << std::endl;
+        std::cout << "[INFO] Migration not needed." << std::endl;
     }
 
     return 0;
@@ -45,17 +45,20 @@ int migrate(std::atomic<bool>& running, std::condition_variable& cv, std::mutex&
     while(running){
         
         {
-            std::cout << "Migration is in progresss..." << std::endl;
+            std::cout << "[INFO] Migration is triggered." << std::endl;
             std::unique_lock<std::shared_mutex> lock(system_mutex);
             migrate();
-            std::cout << "Migration done!" << std::endl;
-            sleep(10);
-	    node_control();
+            std::cout << "[INFO] Migration is ended." << std::endl;
+            //delay a bit to let slurm update the job state after migration
+            sleep(5);
+            std::cout << "[INFO] Node Control is triggered." << std::endl;
+            node_control();
+            std::cout << "[INFO] Node Control is ended." << std::endl;
         }
         
         std::unique_lock<std::mutex> lk(mtx);
         cv.wait_for(lk, std::chrono::seconds(60), [&]{return !running;});
     }
-    std::cout << "Migrator stopping..." << std::endl;
+    std::cout << "[WARN] Migration thread is stopping." << std::endl;
     return 0;
 }

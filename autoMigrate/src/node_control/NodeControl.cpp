@@ -18,7 +18,7 @@ const std::map<std::string, std::string> NODE_HOST_MAP = {
 // Helper to execute shell commands
 void run_cmd(const std::string& cmd) {
     std::cout << "[EXEC] " << cmd << std::endl;
-    std::system(cmd.c_str()); // Uncomment to enable execution
+    std::system(cmd.c_str());
 }
 
 void power_on_node(const std::string& nodename, const std::string& host) {
@@ -74,18 +74,9 @@ void check_node_control(std::vector<NodeState> nodes, std::vector<JobState> jobs
 }
 
 void node_control() {
-    std::cout << "Checking node states and controlling power accordingly..." << std::endl;
     // Standard Slurm data retrieval
     std::vector<JobState> jobState = get_job_state();
     std::vector<NodeState> nodeState = get_node_state();
-
-	for (const auto& job : jobState) {
-        std::cout << "Job ID: " << job.job_id << ", State: " << job.job_state << std::endl;
-    }
-
-    for(const auto& node : nodeState) {
-        std::cout << "Node ID: " << node.node_id << ", State: " << node.node_state << std::endl;
-    }
 
     check_node_control(nodeState, jobState);
 }
