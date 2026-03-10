@@ -25,7 +25,7 @@ void rearrangeJobs(std::vector<JobDetail>& jobDetails) {
         newNodes.push_back(nodeList.getNodeByName(node));
     }
 
-    std::cout << "New node list: ";
+    std::cout << "[INFO] Considering nodes for migration: ";
     for (const auto& node : newNodes) {
         std::cout << node.getNodeName() << " ";
     }
