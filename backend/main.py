@@ -1,15 +1,6 @@
 import sys
 import os
 
-PACKAGES_DIR = os.path.join(os.path.dirname(__file__), 'packages')
-MODULE_DIR = os.path.join(os.path.dirname(__file__), 'MODULE_DIR')
-
-if PACKAGES_DIR not in sys.path:
-    sys.path.insert(0, PACKAGES_DIR)
-
-if MODULE_DIR not in sys.path:
-    sys.path.insert(0, MODULE_DIR)
-
 from typing import Annotated, Union
 
 from fastapi import FastAPI, Request, Header 
@@ -39,7 +30,7 @@ async def checkApiKey(request: Request, call_next):
 
     if not(isPass(request.headers.get("apikey"))):
         return JSONResponse(
-            status_codee=401, 
+            status_code=401, 
             content={"detail": "API KEY is missing or invalid"}
         )
     response = await call_next(request)
