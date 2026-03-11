@@ -28,7 +28,7 @@ void handleClient(int clientSocket) {
         if (buffer == "TEST") {
             std::cout << "Received TEST command." << std::endl;
         }
-        else if (buffer == "SendJob") {
+        else if (buffer == "stask") {
             send_job(clientSocket);
         }
         else {

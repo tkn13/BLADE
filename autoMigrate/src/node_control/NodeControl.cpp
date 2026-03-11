@@ -11,7 +11,7 @@
 const std::map<std::string, std::string> NODE_HOST_MAP = {
     {"blade-n1", "cs-wk01"}, {"blade-n2", "cs-wk01"},
     {"blade-n3", "cs-wk02"}, {"blade-n4", "cs-wk02"},
-   // {"blade-n5", "cs-wk03"}, {"blade-n6", "cs-wk03"},
+    {"blade-n5", "cs-wk03"}, {"blade-n6", "cs-wk03"},
     {"blade-n7", "cs-wk04"}, {"blade-n8", "cs-wk04"}
 };
 
