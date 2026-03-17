@@ -53,6 +53,8 @@ async def get_node_cpu(
     end_time: Optional[str] = None
     ) -> list[MetricUnit]:
     query = get_query_text_node_cpu(node_id, time_delta, start_time, end_time)
+    
+    print(query)
 
     tables = query_api.query(query,org=org)
     
@@ -146,6 +148,8 @@ async def get_node_metric(
     mem = await get_node_mem(node_id, time_delta, start_time, end_time)
 
     merge: Dict[str, Metric] = {}
+    
+    print(cpu)
 
     for item in cpu:
         merge[item.timestamp] = Metric(timestamp=item.timestamp, cpu=item.value)

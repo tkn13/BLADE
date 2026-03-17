@@ -22,9 +22,11 @@ def get_query_text_node_cpu(
     query_text = f"""from(bucket: \"blade-resource\")
         {range_text}
         |> filter(fn: (r) => r[\"_measurement\"] == \"cpu\")
-        |> filter(fnL (r) => r[\"_field\"] == \"usage_system\" or r[\"_field\"] == \"usage_user\")
+        |> filter(fn: (r) => r[\"_field\"] == \"usage_system\" or r[\"_field\"] == \"usage_user\")
         |> filter(fn: (r) => r[\"cpu\"] == \"cpu-total\")
-        |> filter(fn: (r) => r[\"host\"] == \"{node_id}\")"""
+        |> filter(fn: (r) => r[\"host\"] == \"{node_id}\")
+        |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
+        |> yield(name: \"mean\")"""
 
     return query_text
 
