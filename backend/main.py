@@ -4,6 +4,7 @@ import os
 from typing import Annotated, Union
 
 from fastapi import FastAPI, Request, Header 
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -18,13 +19,21 @@ from schema.Job import JobDetailResponse
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class CommonHeaders(BaseModel):
     apikey: str
 
 @app.middleware("http")
 async def checkApiKey(request: Request, call_next):
     
-    if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
+    if request.method == "OPTIONS" or request.url.path in ["/docs", "/redoc", "/openapi.json"]:
         response = await call_next(request)
         return response
 
