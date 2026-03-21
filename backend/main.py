@@ -69,6 +69,16 @@ async def nodeById(headers: Annotated[CommonHeaders, Header()],
     end_time: Union[str, None] = None):
     return await get_node_metric(node_id, time_delta=time_delta, start_time=start_time, end_time=end_time)
 
+@app.get("/api/metrics/node/batch")
+async def nodeBatch(headers: Annotated[CommonHeaders, Header()],
+    node_ids: str, 
+    time_delta: Union[str, None] = "-1hr", 
+    start_time: Union[str, None] = None, 
+    end_time: Union[str, None] = None):
+    
+    node_id_list = node_ids.split(",")
+    return await get_nodes_metric(node_id_list, time_delta=time_delta, start_time=start_time, end_time=end_time)
+
 @app.get("/api/metrics/job", response_model=JobResponse)
 async def jobAll(headers: Annotated[CommonHeaders, Header()]):
     return get_list_of_job_state()

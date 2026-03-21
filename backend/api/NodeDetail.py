@@ -142,15 +142,11 @@ async def get_node_metric(
     end_time: Optional[str] = None
     ):
     
-    print(f"api was called {start_time}, {end_time}")
-
     cpu = await get_node_cpu(node_id, time_delta, start_time, end_time)
     mem = await get_node_mem(node_id, time_delta, start_time, end_time)
 
     merge: Dict[str, Metric] = {}
     
-    print(cpu)
-
     for item in cpu:
         merge[item.timestamp] = Metric(timestamp=item.timestamp, cpu=item.value)
 
@@ -176,3 +172,13 @@ async def get_node_metric(
         node_status="up", 
         current_job=get_running_job(node_id),
         resource_usage=resource_usage))
+
+async def get_nodes_metric(
+    node_ids: list[str],
+    time_delta: Optional[str] = "-1h",
+    start_time: Optional[str] = None,
+    end_time: Optional[str] = None
+    ) -> list[NodeMetricResponse]:
+    
+    tasks = [get_node_metric(node_id, time_delta, start_time, end_time) for node_id in node_ids]
+    return await asyncio.gather(*tasks)
