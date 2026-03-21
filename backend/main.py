@@ -64,7 +64,7 @@ async def nodeAll(headers: Annotated[CommonHeaders, Header()]):
 @app.get("/api/metrics/node/{node_id}")
 async def nodeById(headers: Annotated[CommonHeaders, Header()],
     node_id: str, 
-    time_delta: Union[str, None] = "-1hr", 
+    time_delta: Union[str, None] = "-5m", 
     start_time: Union[str, None] = None, 
     end_time: Union[str, None] = None):
     return await get_node_metric(node_id, time_delta=time_delta, start_time=start_time, end_time=end_time)
@@ -72,7 +72,7 @@ async def nodeById(headers: Annotated[CommonHeaders, Header()],
 @app.get("/api/metrics/node/batch")
 async def nodeBatch(headers: Annotated[CommonHeaders, Header()],
     node_ids: str, 
-    time_delta: Union[str, None] = "-1hr", 
+    time_delta: Union[str, None] = "-5m", 
     start_time: Union[str, None] = None, 
     end_time: Union[str, None] = None):
     

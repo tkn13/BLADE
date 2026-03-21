@@ -2,7 +2,7 @@ from typing import Optional
 
 def get_query_text_node_cpu(
     node_id: str,
-    time_delta: Optional[str] = "-1h",
+    time_delta: Optional[str] = "-5m",
     start_time: Optional[str] = None,
     end_time: Optional[str] = None
 ) -> str:
@@ -25,14 +25,13 @@ def get_query_text_node_cpu(
         |> filter(fn: (r) => r[\"_field\"] == \"usage_system\" or r[\"_field\"] == \"usage_user\")
         |> filter(fn: (r) => r[\"cpu\"] == \"cpu-total\")
         |> filter(fn: (r) => r[\"host\"] == \"{node_id}\")
-        |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
         |> yield(name: \"mean\")"""
 
     return query_text
 
 def get_query_text_node_mem(
     node_id: str,
-    time_delta: Optional[str] = "-1h",
+    time_delta: Optional[str] = "-5m",
     start_time: Optional[str] = None,
     end_time: Optional[str] = None
 ) -> str:

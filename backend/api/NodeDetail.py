@@ -167,11 +167,46 @@ async def get_node_metric(
     else:
         resource_usage=None
     
-    return (NodeMetricResponse(
+    return_val = NodeMetricResponse(
         node_id=node_id, 
         node_status="up", 
         current_job=get_running_job(node_id),
-        resource_usage=resource_usage))
+        resource_usage=resource_usage)
+    
+    ##preprocess resource usage data by aggregating into 5s intervals using average and sliding window of 5s
+    if resource_usage is not None:
+        aggregated_data = []
+        window_size = 5  # seconds
+        current_window_start = resource_usage.data[0].timestamp
+        current_window_end = current_window_start + timedelta(seconds=window_size)
+        current_window_values = []
+
+        for metric in resource_usage.data:
+            while metric.timestamp >= current_window_end:
+                if current_window_values:
+                    avg_cpu = sum(m.cpu for m in current_window_values if m.cpu is not None) / len(current_window_values)
+                    avg_mem = sum(m.mem for m in current_window_values if m.mem is not None) / len(current_window_values)
+                    aggregated_data.append(Metric(timestamp=current_window_start, cpu=avg_cpu, mem=avg_mem))
+                else:
+                    aggregated_data.append(Metric(timestamp=current_window_start, cpu=None, mem=None))
+
+                current_window_start = current_window_end
+                current_window_end += timedelta(seconds=window_size)
+                current_window_values = []
+
+            current_window_values.append(metric)
+
+        # Handle the last window
+        if current_window_values:
+            avg_cpu = sum(m.cpu for m in current_window_values if m.cpu is not None) / len(current_window_values)
+            avg_mem = sum(m.mem for m in current_window_values if m.mem is not None) / len(current_window_values)
+            aggregated_data.append(Metric(timestamp=current_window_start, cpu=avg_cpu, mem=avg_mem))
+        else:
+            aggregated_data.append(Metric(timestamp=current_window_start, cpu=None, mem=None))
+
+        return_val.resource_usage.data = aggregated_data
+
+    return return_val
 
 async def get_nodes_metric(
     node_ids: list[str],
