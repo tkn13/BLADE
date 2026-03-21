@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from middleware import isPass
 from api.NodeDetail import get_node_metric
+from api.NodeDetail import get_nodes_metric
 from api.NodeList import get_list_of_node_state
 from api.Job import get_list_of_job_state
 from api.JobDetail import get_job_detail
@@ -61,14 +62,6 @@ async def clusterSummary(headers: Annotated[CommonHeaders, Header()]):
 async def nodeAll(headers: Annotated[CommonHeaders, Header()]):
     return get_list_of_node_state()
 
-@app.get("/api/metrics/node/{node_id}")
-async def nodeById(headers: Annotated[CommonHeaders, Header()],
-    node_id: str, 
-    time_delta: Union[str, None] = "-5m", 
-    start_time: Union[str, None] = None, 
-    end_time: Union[str, None] = None):
-    return await get_node_metric(node_id, time_delta=time_delta, start_time=start_time, end_time=end_time)
-
 @app.get("/api/metrics/node/batch")
 async def nodeBatch(headers: Annotated[CommonHeaders, Header()],
     node_ids: str, 
@@ -78,6 +71,14 @@ async def nodeBatch(headers: Annotated[CommonHeaders, Header()],
     
     node_id_list = node_ids.split(",")
     return await get_nodes_metric(node_id_list, time_delta=time_delta, start_time=start_time, end_time=end_time)
+
+@app.get("/api/metrics/node/{node_id}")
+async def nodeById(headers: Annotated[CommonHeaders, Header()],
+    node_id: str, 
+    time_delta: Union[str, None] = "-5m", 
+    start_time: Union[str, None] = None, 
+    end_time: Union[str, None] = None):
+    return await get_node_metric(node_id, time_delta=time_delta, start_time=start_time, end_time=end_time)
 
 @app.get("/api/metrics/job", response_model=JobResponse)
 async def jobAll(headers: Annotated[CommonHeaders, Header()]):

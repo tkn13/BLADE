@@ -1,9 +1,9 @@
 import influxdb_client, os, asyncio
 from influxdb_client import InfluxDBClient
 from schema.query_generator import get_query_text_node_cpu, get_query_text_node_mem
-from typing import Optional
+from typing import Dict, Optional
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 import re
@@ -205,6 +205,8 @@ async def get_node_metric(
             aggregated_data.append(Metric(timestamp=current_window_start, cpu=None, mem=None))
 
         return_val.resource_usage.data = aggregated_data
+    
+    return_val.resource_usage.data_amount = len(return_val.resource_usage.data) if return_val.resource_usage else 0
 
     return return_val
 
