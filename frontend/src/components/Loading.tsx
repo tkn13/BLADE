@@ -19,7 +19,7 @@ export function Loading(props: LoadingPagesProps) {
     const sizeClass = {
         small: "h-8 w-8",
         medium: "h-16 w-16",
-        large: "h-24 w-24",
+        large: "flex-grow h-32 w-32",
         full: "h-screen w-screen"
     }[props.size || "medium"] || "h-16 w-16";
 

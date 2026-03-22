@@ -1,26 +1,27 @@
-import { useState, useMemo } from "react";
-import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
+import { useState } from "react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "./ui/chart";
-import { useFetch } from "@/hook/useFetch";
 interface NodeCardProp {
     cardTitle: string,
     cardDetail: string,
-    cardState: "idle" | "busy" | "dead"
+    cardState: "up" | "busy" | "dead",
+    total_mem: number,
+    chartData: NodeCardData
 }
-
 interface NodeCardData {
-    time: string,
-    cpu: number,
-    ram: number
+    start_time: string;
+    end_time: string;
+    data_amount: number;
+    data: Array<{
+        timestamp: string;
+        cpu: number;
+        mem: number;
+    }>;
 }
 
-type TimeRange = "30m" | "1hr" | "6hr" | "12hr" | "1D";
-
-const TIME_RANGES: TimeRange[] = ["30m", "1hr", "6hr", "12hr", "1D"];
-
-const STATE_COLORS: Record<"idle" | "busy" | "dead", string> = {
-    idle: "bg-green-500",
+const STATE_COLORS: Record<"up" | "busy" | "dead", string> = {
+    up: "bg-green-500",
     busy: "bg-yellow-500",
     dead: "bg-red-500"
 };
@@ -40,25 +41,14 @@ const getButtonClassName = (isActive: boolean, isDisabled: boolean) =>
     } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`;
 
 
-
-
 export function NodeCard(props: NodeCardProp) {
-    const [selectedMetric, setSelectedMetric] = useState<"cpu" | "ram">("cpu");
-    const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>("30m");
+    const [selectedMetric, setSelectedMetric] = useState<"cpu" | "mem">("cpu");
     const isDisabled = props.cardState === "dead";
+    const yAxisDomain: [number, number] = [0, selectedMetric === "cpu" ? 100 : props.total_mem];
 
-    const { data, isLoading } = useFetch<NodeCardData[]>('https://data');
-
-    const simulatedData = useMemo(
-        () => {
-            if (!data) return [];
-
-            console.log("MEMO was called")
-
-            return data;
-        },
-        [data, selectedTimeRange],
-    );
+    
+    const lastCpu = props.chartData.data.length > 0 ? props.chartData.data[props.chartData.data.length - 1].cpu : null;
+    const lastMem = props.chartData.data.length > 0 ? props.chartData.data[props.chartData.data.length - 1].mem : null;
 
     return (
         <Card className={`m-4 relative transition-transform ${!isDisabled ? "hover:scale-105 cursor-pointer" : ""}`}>
@@ -73,11 +63,15 @@ export function NodeCard(props: NodeCardProp) {
                 <CardAction>
                     <div className="flex items-center gap-2">
                         <img src="/cpu.png" alt="CPU" className="w-6 h-6" />
-                        <p className="font-bold text-gray-800">85%</p>
+                        <p className="font-bold text-gray-800">
+                            {lastCpu !== null ? `${lastCpu.toFixed(2)}%` : "N/A"}
+                        </p>
                     </div>
                     <div className="flex items-center gap-2">
                         <img src="/memory.png" alt="RAM" className="w-6 h-6" />
-                        <p className="font-bold text-gray-800">4.6/8 GB</p>
+                        <p className="font-bold text-gray-800">
+                            {lastMem !== null ? `${lastMem}/${props.total_mem}GB` : "N/A"}
+                        </p>
                     </div>
                 </CardAction>
             </CardHeader>
@@ -92,43 +86,34 @@ export function NodeCard(props: NodeCardProp) {
                             CPU
                         </button>
                         <button
-                            onClick={() => setSelectedMetric("ram")}
+                            onClick={() => setSelectedMetric("mem")}
                             disabled={isDisabled}
-                            className={getButtonClassName(selectedMetric === "ram", isDisabled)}
+                            className={getButtonClassName(selectedMetric === "mem", isDisabled)}
                         >
                             RAM
                         </button>
                     </div>
-                    <div>
-                        {TIME_RANGES.map((item) => (
-                            <button
-                                key={item}
-                                onClick={() => setSelectedTimeRange(item)}
-                                disabled={isDisabled}
-                                className={`px-3 py-1 m-1 rounded-sm font-sm transition-all ${selectedTimeRange === item
-                                        ? "bg-indigo-500 text-white"
-                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                    } ${isDisabled ? "cursor-not-allowed opacity-51" : ""}`}
-                            >
-                                {item}
-                            </button>
-                        ))
-                        }
-                    </div>
-                </div>
+               </div>
 
                 <ChartContainer config={CHART_CONFIG}>
                     <LineChart
                         accessibilityLayer
-                        data={simulatedData ?? []}
+                        data={props.chartData.data}
                         margin={{
-                            left: 12,
-                            right: 12
+                            left: -20,
+                            right: 0
                         }}
                     >
                         <CartesianGrid vertical={false} />
                         <XAxis
-                            dataKey="time"
+                            dataKey="timestamp"
+                            tick={false}
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={10}
+                        />
+                        <YAxis
+                            domain={yAxisDomain}
                             tickLine={false}
                             axisLine={false}
                             tickMargin={8}
@@ -142,6 +127,7 @@ export function NodeCard(props: NodeCardProp) {
                             type="natural"
                             stroke="var(--color-desktop)"
                             strokeWidth={2}
+                            isAnimationActive={false}
                             dot={false}
                         />
                     </LineChart>

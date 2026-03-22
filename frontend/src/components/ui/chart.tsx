@@ -168,6 +168,7 @@ function ChartTooltipContent({
 
   const nestLabel = payload.length === 1 && indicator !== "dot"
 
+  // Show timestamp (label) at the top of the tooltip
   return (
     <div
       className={cn(
@@ -175,6 +176,9 @@ function ChartTooltipContent({
         className
       )}
     >
+      {label && (
+        <div className="font-mono text-xs text-indigo-700 mb-1">{label}</div>
+      )}
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
         {payload
