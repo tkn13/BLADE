@@ -40,8 +40,8 @@ class NodeMetricResponse:
     node_id: str
     node_status: str
     current_job: list[str]
-    total_mem: Optional[float] = None
     resource_usage: ResourceUsage
+    total_mem: Optional[int] = None
 
 class MetricUnit:
     def __init__(self, timestamp, value):
@@ -85,6 +85,11 @@ async def get_node_cpu(
 
     return return_value
 
+
+#Convert byte to GB with 2 decimal places
+def byte_to_gb(byte_value: float) -> float:
+    return round(byte_value / (1024 ** 3), 2)
+
 async def get_node_mem(
     node_id: str,
     time_delta: Optional[str] = "-1h",
@@ -101,14 +106,14 @@ async def get_node_mem(
     for table in tables:
         for record in table.records:
             if record['_field'] == 'used':
-                return_value.append(MetricUnit(record['_time'], record['_value']))
+                return_value.append(MetricUnit(record['_time'], byte_to_gb(record['_value'])))
     
     ##Get Total mem from _field total
     total_mem = None
     for table in tables:
         for record in table.records:
             if record['_field'] == 'total':
-                total_mem = record['_value']
+                total_mem = byte_to_gb(record['_value'])
                 break
         if total_mem is not None:
             break
@@ -186,6 +191,7 @@ async def get_node_metric(
 
     cpu = await get_node_cpu(node_id, time_delta, start_time, end_time)
     mem, total = await get_node_mem(node_id, time_delta, start_time, end_time)
+    
 
     merge: Dict[str, Metric] = {}
     
@@ -218,8 +224,9 @@ async def get_node_metric(
         node_id=node_id, 
         node_status=node_status, 
         current_job=get_running_job(node_id),
-        total_mem=total,
-        resource_usage=resource_usage)
+        resource_usage=resource_usage,
+        total_mem=total)
+
     
     ##preprocess resource usage data by aggregating into 5s intervals using average and sliding window of 5s
     if return_val.resource_usage.data:
