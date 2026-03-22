@@ -145,12 +145,13 @@ async def get_node_metric(
     ):
     
     node_status = get_node_status(node_id)
-    if node_status == "dead":
+    if node_status == "dead":W
         return NodeMetricResponse(
             node_id=node_id, 
             node_status="dead", 
             current_job=[], 
-            resource_usage=None)
+            resource_usage=ResourceUsage(start_time=None, end_time=None, data_amount=0, data=[])
+            )
 
     cpu = await get_node_cpu(node_id, time_delta, start_time, end_time)
     mem = await get_node_mem(node_id, time_delta, start_time, end_time)
@@ -166,7 +167,7 @@ async def get_node_metric(
         else:
             merge[item.timestamp] = Metric(timestamp=item.timestamp, mem=item.value)
 
-    resource_data = sorted(merge.values(), key=lambda x: x.timestamp)
+    resource_data = sorted(merge.values(), key=lambda x: x.timestamp)    
     
     if len(resource_data) > 0:
         resource_usage=ResourceUsage(
@@ -175,7 +176,12 @@ async def get_node_metric(
         data_amount=len(resource_data),
         data=resource_data)
     else:
-        resource_usage=None
+        resource_usage=ResourceUsage(
+        start_time=None,
+        end_time=None,
+        data_amount=0,
+        data=[]
+        )
     
     return_val = NodeMetricResponse(
         node_id=node_id, 
@@ -184,7 +190,7 @@ async def get_node_metric(
         resource_usage=resource_usage)
     
     ##preprocess resource usage data by aggregating into 5s intervals using average and sliding window of 5s
-    if resource_usage is not None:
+    if return_val.resource_usage.data:
         aggregated_data = []
         window_size = 5  # seconds
         current_window_start = resource_usage.data[0].timestamp
