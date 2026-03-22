@@ -8,6 +8,8 @@ class JobResponse(BaseModel):
 
 class JobDetailResponse(BaseModel):
     jobId: str
+    jobName: str
+    user: str
     jobStatus: str
     nodeAlloc: str
     cpuAlloc: int

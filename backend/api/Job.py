@@ -30,14 +30,18 @@ def get_list_of_job_state():
     for l in line:
         data = l.split()
         jobId = data[0]
-        jobStatus = data[4]
+        jobName = data[1]
+        user = data[2]
         time = data[3]
+        jobStatus = data[4]
         if jobStatus == "RUNNING":
             runningJob += 1
             nodeAlloc = data[6] if len(data) > 6 else "N/A"
             cpuAlloc = int(data[5]) if len(data) > 5 else 0
             jobDetail.append(JobDetailResponse(
                 jobId=jobId,
+                jobName=jobName,
+                user=user,
                 jobStatus=jobStatus,
                 nodeAlloc=nodeAlloc,
                 cpuAlloc=cpuAlloc,
@@ -47,6 +51,8 @@ def get_list_of_job_state():
             pendingJob += 1
             jobDetail.append(JobDetailResponse(
                 jobId=jobId,
+                jobName=jobName,
+                user=user,
                 jobStatus=jobStatus,
                 nodeAlloc="N/A",
                 cpuAlloc=0,
