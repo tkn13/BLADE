@@ -1,31 +1,74 @@
-import { useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Table, TableCaption, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
+import { useFetch } from "@/hook/useFetch"
+import { Loading } from "@/components/Loading"
 
-interface JobModel{
-    id: string,
-    jobname: string,
-    user: string,
-    time: string,
-    status: string
+interface JobDetailResponse{
+    jobId: string
+    jobName: string
+    user: string
+    jobStatus: string
+    nodeAlloc: string
+    cpuAlloc: number
+    time: string
+
 }
 
-const generateJobData = (rows: number): JobModel[] => {
-    return Array.from({ length: rows }, (_, index) => ({
-        id: String(index + 1),
-        jobname: "test",
-        user: "u1",
-        time: "12000",
-        status: "running"
-    }))
+interface JobResponse{
+    jobTotal: number
+    runningJob: number
+    pendingJob: number
+    jobDetail: JobDetailResponse[]
 }
+
+
 
 export function Job(){
 
-    const data: JobModel[] = generateJobData(33)
+    const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+    const isInitialLoad = useRef(true);
+
+    const apikey_head = "648a4e670d379e9225ac45d61c6daf01"
+    const requestOptions = {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            "apikey": apikey_head
+        },
+    }
+
+    const baseurl = "http://10.42.7.254:8001/api/metrics/job"
+
+    const { data, error, isLoading } = useFetch<JobResponse>(baseurl, requestOptions, 5000);
+
+    useEffect(() => {
+        if (!isLoading && data && isInitialLoad.current) {
+            isInitialLoad.current = false;
+            setHasLoadedOnce(true);
+        }
+    }, [isLoading, data]);
 
     const [currentPage, setCurrentPage] = useState(1);
+    const [searchQuery, setSearchQuery] = useState("");
     const LIMIT_ROW = 10;
-    const MAX_PAGE = Math.ceil(data.length / LIMIT_ROW);
+
+    const allJobs = data?.jobDetail ?? [];
+    const filteredJobs = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) {
+            return allJobs;
+        }
+
+        return allJobs.filter((job) =>
+            [job.jobId, job.jobName, job.user, job.jobStatus, job.nodeAlloc]
+                .join(" ")
+                .toLowerCase()
+                .includes(query)
+        );
+    }, [allJobs, searchQuery]);
+
+    const totalJobs = filteredJobs.length;
+    const MAX_PAGE = Math.max(1, Math.ceil(totalJobs / LIMIT_ROW));
 
     const incress = ()=>{
         setCurrentPage(prevCurrentPage => Math.min(prevCurrentPage + 1, MAX_PAGE))
@@ -35,73 +78,131 @@ export function Job(){
         setCurrentPage(prevCurrentPage => Math.max(prevCurrentPage - 1, 1))
     }
 
-        const displayedData: JobModel[] = data.slice(
-            (currentPage - 1) * LIMIT_ROW,
-            Math.min((currentPage - 1) * LIMIT_ROW + LIMIT_ROW, data.length)
+    const displayedData = filteredJobs.slice((currentPage - 1) * LIMIT_ROW, currentPage * LIMIT_ROW);
+
+    if (isLoading && !hasLoadedOnce) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-slate-950">
+                <Loading size="full" message="Loading jobs..." />
+            </div>
         );
+    }
+
+    if (error) {
+        return <div className="min-h-screen bg-slate-950 p-6 text-rose-400">Failed to load jobs.</div>;
+    }
 
         return (
-            <div className="flex flex-col min-h-screen bg-slate-50">
-                <div className="flex items-center justify-between bg-white sticky top-0 z-10 p-4 shadow-md border-b">
-                    <h1 className="text-2xl font-bold text-indigo-700 tracking-tight">Job Table</h1>
+            <div
+                className="relative min-h-screen overflow-x-hidden bg-slate-950 text-slate-100"
+                style={{ fontFamily: '"Sora", "Poppins", "Trebuchet MS", sans-serif' }}
+            >
+                <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute -left-24 top-8 h-56 w-56 rounded-full bg-cyan-500/20 blur-3xl" />
+                    <div className="absolute right-0 top-40 h-80 w-80 rounded-full bg-emerald-500/15 blur-3xl" />
+                    <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
+                </div>
+
+                <div className="relative flex items-center justify-between bg-slate-950/90 backdrop-blur sticky top-0 z-10 px-6 py-4 border-b border-white/10">
+                    <h1 className="text-2xl font-bold text-cyan-300">Job Table</h1>
                     <form onSubmit={(e) => e.preventDefault()}>
                         <input
-                            className="w-64 px-4 py-2 rounded-lg border border-indigo-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 transition-all placeholder-gray-500 text-gray-700 bg-white hover:shadow-md"
+                            className="w-64 px-4 py-2 rounded-lg border border-white/20 bg-white/5 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all placeholder-slate-500 text-slate-200"
                             type="text"
-                            placeholder="Search job name..."
-                            //value={searchQuery}
-                            //onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search by id, name, user, status, node"
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setCurrentPage(1);
+                            }}
                         />
                     </form>
                 </div>
-                <main className="flex-1 p-4">
-                    <div className="overflow-x-auto rounded-lg shadow">
-                        <Table className="min-w-full text-sm">
-                            <TableCaption className="text-left text-gray-500 mb-2">Showing jobs {((currentPage - 1) * LIMIT_ROW) + 1} - {Math.min(currentPage * LIMIT_ROW, data.length)} of {data.length}</TableCaption>
+
+                <div className="relative mx-auto max-w-7xl space-y-6 p-6">
+
+                    <section className="grid gap-4 md:grid-cols-3">
+                        <div className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                            <p className="text-sm uppercase tracking-wider text-slate-300">Total Jobs</p>
+                            <p className="mt-2 text-3xl font-semibold text-slate-100">{data?.jobTotal ?? 0}</p>
+                        </div>
+                        <div className="rounded-xl border border-emerald-300/25 bg-emerald-500/10 p-4 backdrop-blur">
+                            <p className="text-sm uppercase tracking-wider text-emerald-300">Running Jobs</p>
+                            <p className="mt-2 text-3xl font-semibold text-emerald-100">{data?.runningJob ?? 0}</p>
+                        </div>
+                        <div className="rounded-xl border border-amber-300/25 bg-amber-500/10 p-4 backdrop-blur">
+                            <p className="text-sm uppercase tracking-wider text-amber-300">Pending Jobs</p>
+                            <p className="mt-2 text-3xl font-semibold text-amber-100">{data?.pendingJob ?? 0}</p>
+                        </div>
+                    </section>
+
+                    <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
+                        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <h2 className="text-lg font-semibold text-slate-100">Job Table</h2>
+                            <div className="text-sm text-slate-400">Track queue status and inspect all job details from the API.</div>
+                </div>
+
+                        <div className="overflow-hidden rounded-xl border border-white/10">
+                            <Table className="min-w-full text-sm">
+                            <TableCaption className="text-left text-slate-400 mb-2">
+                                Showing jobs {totalJobs === 0 ? 0 : ((currentPage - 1) * LIMIT_ROW) + 1} - {Math.min(currentPage * LIMIT_ROW, totalJobs)} of {totalJobs}
+                            </TableCaption>
                             <TableHeader>
-                                <TableRow className="bg-indigo-100 text-indigo-700 sticky top-0">
+                                <TableRow className="border-b border-white/10 bg-slate-800/60 text-slate-300">
                                     <TableHead className="py-2 px-4">ID</TableHead>
                                     <TableHead className="py-2 px-4">Job Name</TableHead>
                                     <TableHead className="py-2 px-4">User</TableHead>
                                     <TableHead className="py-2 px-4">Time</TableHead>
                                     <TableHead className="py-2 px-4">Status</TableHead>
+                                    <TableHead className="py-2 px-4">Node Alloc</TableHead>
+                                    <TableHead className="py-2 px-4 text-right">CPU Alloc</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
+                                {displayedData.length === 0 && (
+                                    <TableRow>
+                                        <TableCell className="py-8 text-center text-slate-400" colSpan={7}>
+                                            No jobs found.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                                 {displayedData.map((item, idx) => (
-                                    <TableRow key={item.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-100"}>
-                                        <TableCell className="py-2 px-4 font-medium">{item.id}</TableCell>
-                                        <TableCell className="py-2 px-4">{item.jobname}</TableCell>
-                                        <TableCell className="py-2 px-4">{item.user}</TableCell>
-                                        <TableCell className="py-2 px-4">{item.time}</TableCell>
+                                    <TableRow key={item.jobId} className={idx % 2 === 0 ? "bg-white/[0.03]" : "bg-transparent"}>
+                                        <TableCell className="py-2 px-4 font-semibold text-slate-100">{item.jobId}</TableCell>
+                                        <TableCell className="py-2 px-4 text-slate-300">{item.jobName}</TableCell>
+                                        <TableCell className="py-2 px-4 text-slate-300">{item.user}</TableCell>
+                                        <TableCell className="py-2 px-4 text-slate-300">{item.time}</TableCell>
                                         <TableCell className="py-2 px-4">
                                             <span className={
-                                                item.status === "running"
-                                                    ? "bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold"
-                                                    : item.status === "failed"
-                                                    ? "bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-semibold"
-                                                    : "bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-semibold"
+                                                item.jobStatus === "RUNNING"
+                                                    ? "inline-flex rounded-full bg-emerald-500/20 text-emerald-300 px-2 py-1 text-xs font-semibold"
+                                                    : item.jobStatus === "FAILED"
+                                                    ? "inline-flex rounded-full bg-rose-500/20 text-rose-300 px-2 py-1 text-xs font-semibold"
+                                                    : "inline-flex rounded-full bg-amber-500/20 text-amber-300 px-2 py-1 text-xs font-semibold"
                                             }>
-                                                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                                                {item.jobStatus.charAt(0).toUpperCase() + item.jobStatus.slice(1).toLowerCase()}
                                             </span>
                                         </TableCell>
+                                        <TableCell className="py-2 px-4 text-slate-300">{item.nodeAlloc}</TableCell>
+                                        <TableCell className="py-2 px-4 text-right text-slate-200">{item.cpuAlloc}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
                     </div>
-                    <div className="flex flex-row justify-between items-center mt-4">
-                        <span className="text-gray-600 text-sm">Page {currentPage} of {MAX_PAGE}</span>
+
+                    <div className="mt-4 flex flex-row items-center justify-between">
+                        <span className="text-slate-400 text-sm">Page {currentPage} of {MAX_PAGE}</span>
                         <div className="flex gap-2">
                             <button
-                                className="bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded-md font-bold text-white transition-colors disabled:bg-indigo-300"
+                                className="bg-cyan-500 hover:bg-cyan-400 px-4 py-2 rounded-md font-bold text-slate-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                 onClick={decress}
                                 disabled={currentPage === 1}
                             >
                                 Prev
                             </button>
                             <button
-                                className="bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded-md font-bold text-white transition-colors disabled:bg-indigo-300"
+                                className="bg-cyan-500 hover:bg-cyan-400 px-4 py-2 rounded-md font-bold text-slate-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                 onClick={incress}
                                 disabled={currentPage === MAX_PAGE}
                             >
@@ -109,7 +210,9 @@ export function Job(){
                             </button>
                         </div>
                     </div>
-                </main>
+
+                    </section>
+                </div>
             </div>
         );
 }

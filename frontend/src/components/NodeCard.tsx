@@ -2,6 +2,8 @@ import { useState } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "./ui/chart";
+import { Cpu, HardDrive } from "lucide-react";
+
 interface NodeCardProp {
     cardTitle: string,
     cardDetail: string,
@@ -21,9 +23,9 @@ interface NodeCardData {
 }
 
 const STATE_COLORS: Record<"up" | "busy" | "dead", string> = {
-    up: "bg-green-500",
-    busy: "bg-yellow-500",
-    dead: "bg-red-500"
+    up: "bg-emerald-400",
+    busy: "bg-amber-400",
+    dead: "bg-rose-400"
 };
 
 const CHART_CONFIG = {
@@ -36,9 +38,9 @@ const CHART_CONFIG = {
 
 const getButtonClassName = (isActive: boolean, isDisabled: boolean) =>
     `px-2 py-1 mb-1 rounded-sm font-sm transition-all ${isActive
-        ? "bg-indigo-500 text-white"
-        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-    } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`;
+        ? "bg-cyan-500 text-slate-950 font-semibold"
+        : "bg-white/10 text-slate-300 hover:bg-white/20"
+    } ${isDisabled ? "cursor-not-allowed opacity-50" : ""}` ;
 
 
 export function NodeCard(props: NodeCardProp) {
@@ -51,7 +53,7 @@ export function NodeCard(props: NodeCardProp) {
     const lastMem = props.chartData.data.length > 0 ? props.chartData.data[props.chartData.data.length - 1].mem : null;
 
     return (
-        <Card className={`m-4 relative transition-transform ${!isDisabled ? "hover:scale-105 cursor-pointer" : ""}`}>
+        <Card className={`m-4 relative transition-transform bg-slate-900/70 border-white/10 text-slate-100 ${!isDisabled ? "hover:scale-105 cursor-pointer" : ""}`}>
             <CardHeader>
                 <CardTitle className="text-xl">{props.cardTitle}</CardTitle>
                 <CardDescription>
@@ -62,14 +64,14 @@ export function NodeCard(props: NodeCardProp) {
                 </CardDescription>
                 <CardAction>
                     <div className="flex items-center gap-2">
-                        <img src="/cpu.png" alt="CPU" className="w-6 h-6" />
-                        <p className="font-bold text-gray-800">
+                         <Cpu className="h-5 w-5 text-emerald-300" />
+                        <p className="font-bold text-slate-200">
                             {lastCpu !== null ? `${lastCpu.toFixed(2)}%` : "N/A"}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <img src="/memory.png" alt="RAM" className="w-6 h-6" />
-                        <p className="font-bold text-gray-800">
+                        <HardDrive className="h-5 w-5 text-amber-300" />
+                        <p className="font-bold text-slate-200">
                             {lastMem !== null ? `${lastMem}/${props.total_mem}GB` : "N/A"}
                         </p>
                     </div>
@@ -115,8 +117,11 @@ export function NodeCard(props: NodeCardProp) {
                         <YAxis
                             domain={yAxisDomain}
                             tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
+                            axisLine={true}
+                            tickMargin={10}
+                            //add margin yAxis
+                            padding={{ top: 1, bottom: 0 }}
+
                         />
                         <ChartTooltip
                             cursor={false}
@@ -134,7 +139,7 @@ export function NodeCard(props: NodeCardProp) {
                 </ChartContainer>
             </CardContent>
             {isDisabled && (
-                <div className="absolute inset-0 bg-red-300/25 rounded-lg" />
+                <div className="absolute inset-0 bg-rose-500/20 rounded-xl" />
             )}
         </Card>
     );

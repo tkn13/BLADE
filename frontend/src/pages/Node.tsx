@@ -22,19 +22,6 @@ interface NodeMetricData {
     };
 }
 
-const EMPTY_CHART_DATA: NodeMetricData = {
-    node_id: "",
-    node_status: "dead",
-    current_job: [],
-    total_mem: 0,
-    resource_usage: {
-        start_time: "",
-        end_time: "",
-        data_amount: 0,
-        data: []
-    }
-};
-
 export function Node() {
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -93,30 +80,39 @@ export function Node() {
         return data.filter(item => item.node_id.toLowerCase().includes(searchQuery.toLowerCase()));
     }, [data, searchQuery]);  
 
-    
+    if (isLoading && !hasLoadedOnce) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-slate-950">
+                <Loading size="full" message="Loading nodes..." />
+            </div>
+        );
+    }
 
     return (
-        <div className="flex flex-col">
-            <div className="flex items-center justify-between bg-background sticky top-0 z-10 p-4 shadow-sm">
-                <div>
-                    <h1 className="text-2xl font-bold text-indigo-600">Compute Node</h1>
-                </div>
-                <form onSubmit={(e) => e.preventDefault()}>
-                    <input
-                        className="w-full px-4 py-2 rounded-lg border border-indigo-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 transition-all placeholder-gray-500 text-gray-700 bg-white hover:shadow-md"
-                        type="text"
-                        placeholder="Search node name..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </form>
+        <div
+            className="relative min-h-screen overflow-x-hidden bg-slate-950 text-slate-100"
+            style={{ fontFamily: '"Sora", "Poppins", "Trebuchet MS", sans-serif' }}
+        >
+            <div className="pointer-events-none absolute inset-0">
+                <div className="absolute -left-24 top-8 h-56 w-56 rounded-full bg-cyan-500/20 blur-3xl" />
+                <div className="absolute right-0 top-40 h-80 w-80 rounded-full bg-emerald-500/15 blur-3xl" />
+                <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
             </div>
-            {isLoading && !hasLoadedOnce ? (
-                <div className="h-screen flex items-center justify-center">
-                    <Loading size="full" message="Loading nodes..." />
+
+            <div className="relative flex flex-col">
+                <div className="flex items-center justify-between bg-slate-950/90 backdrop-blur sticky top-0 z-10 px-6 py-4 border-b border-white/10">
+                    <h1 className="text-2xl font-bold text-cyan-300">Compute Node</h1>
+                    <form onSubmit={(e) => e.preventDefault()}>
+                        <input
+                            className="w-64 px-4 py-2 rounded-lg border border-white/20 bg-white/5 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all placeholder-slate-500 text-slate-200"
+                            type="text"
+                            placeholder="Search node name..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </form>
                 </div>
-            ) : (
-                <main className="grid grid-cols-3">
+                <main className="grid grid-cols-3 px-2 py-4">
                     {filteredData.length > 0 ? (
                         filteredData.map((item) => (
                             <NodeCard
@@ -129,10 +125,10 @@ export function Node() {
                             />
                         ))
                     ) : (
-                        <p className="p-4 col-span-3 text-gray-500">No nodes found.</p>
+                        <p className="p-4 col-span-3 text-slate-400">No nodes found.</p>
                     )}
                 </main>
-            )}
+            </div>
         </div>
     )
 }
