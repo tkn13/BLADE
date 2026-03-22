@@ -9,6 +9,8 @@ import os
 import re
 import subprocess
 
+from api.NodeList import get_node_status
+
 
 load_dotenv()
 token = os.getenv("INFLUXDB_TOKEN")
@@ -137,11 +139,19 @@ def get_running_job(
 
 async def get_node_metric(
     node_id: str,
-    time_delta: Optional[str] = "-1h",
+    time_delta: Optional[str] = "-5m",
     start_time: Optional[str] = None,
     end_time: Optional[str] = None
     ):
     
+    node_status = get_node_status(node_id)
+    if node_status == "dead":
+        return NodeMetricResponse(
+            node_id=node_id, 
+            node_status="dead", 
+            current_job=[], 
+            resource_usage=None)
+
     cpu = await get_node_cpu(node_id, time_delta, start_time, end_time)
     mem = await get_node_mem(node_id, time_delta, start_time, end_time)
 
@@ -169,7 +179,7 @@ async def get_node_metric(
     
     return_val = NodeMetricResponse(
         node_id=node_id, 
-        node_status="up", 
+        node_status=node_status, 
         current_job=get_running_job(node_id),
         resource_usage=resource_usage)
     
@@ -212,7 +222,7 @@ async def get_node_metric(
 
 async def get_nodes_metric(
     node_ids: list[str],
-    time_delta: Optional[str] = "-1h",
+    time_delta: Optional[str] = "-5m",
     start_time: Optional[str] = None,
     end_time: Optional[str] = None
     ) -> list[NodeMetricResponse]:

@@ -51,3 +51,15 @@ def get_list_of_node_state() -> NodeListResponse:
             down.extend(nodes)
 
     return NodeListResponse(idle, busy, down)
+
+# Utility to get a node's status as a string: 'up', 'alloc', or 'dead'
+def get_node_status(node_id: str) -> str:
+    states = get_list_of_node_state()
+    if node_id in states.idleNode:
+        return "up"
+    elif node_id in states.busyNode:
+        return "alloc"
+    elif node_id in states.downNode:
+        return "dead"
+    else:
+        return "unknown"
