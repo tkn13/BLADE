@@ -40,6 +40,7 @@ class NodeMetricResponse:
     node_id: str
     node_status: str
     current_job: list[str]
+    total_mem: Optional[float] = None
     resource_usage: ResourceUsage
 
 class MetricUnit:
@@ -56,15 +57,32 @@ async def get_node_cpu(
     ) -> list[MetricUnit]:
     query = get_query_text_node_cpu(node_id, time_delta, start_time, end_time)
     
-    print(query)
+
 
     tables = query_api.query(query,org=org)
+
+    #From tables quert have 2 messurement cpu usage_system and usage_user
+    #we need to sum them up to get total cpu usage
+    #and return list of MetricUnit with timestamp and total cpu usage
+
+    cpu_usage_dict: Dict[datetime, float] = {}
+    cpu_usage_system_dict: Dict[datetime, float] = {}
     
     return_value: list[MetricUnit] = []
 
     for table in tables:
         for record in table.records:
-            return_value.append(MetricUnit(record['_time'], record['_value']))
+            if record['_field'] == 'usage_system':
+                cpu_usage_system_dict[record['_time']] = record['_value']
+            elif record['_field'] == 'usage_user':
+                cpu_usage_dict[record['_time']] = record['_value']
+    
+    for timestamp in set(cpu_usage_dict.keys()).union(cpu_usage_system_dict.keys()):
+        user_cpu = cpu_usage_dict.get(timestamp, 0)
+        system_cpu = cpu_usage_system_dict.get(timestamp, 0)
+        total_cpu = user_cpu + system_cpu
+        return_value.append(MetricUnit(timestamp, total_cpu))
+
     return return_value
 
 async def get_node_mem(
@@ -79,10 +97,23 @@ async def get_node_mem(
 
     return_value: list[MetricUnit] = []
 
+    ##Focus only _field used
     for table in tables:
         for record in table.records:
-            return_value.append(MetricUnit(record['_time'], record['_value']))
-    return return_value
+            if record['_field'] == 'used':
+                return_value.append(MetricUnit(record['_time'], record['_value']))
+    
+    ##Get Total mem from _field total
+    total_mem = None
+    for table in tables:
+        for record in table.records:
+            if record['_field'] == 'total':
+                total_mem = record['_value']
+                break
+        if total_mem is not None:
+            break
+
+    return return_value, total_mem
 
 def extract(data, target_num):
     job_ids = []
@@ -145,7 +176,7 @@ async def get_node_metric(
     ):
     
     node_status = get_node_status(node_id)
-    if node_status == "dead":W
+    if node_status == "dead":
         return NodeMetricResponse(
             node_id=node_id, 
             node_status="dead", 
@@ -154,7 +185,7 @@ async def get_node_metric(
             )
 
     cpu = await get_node_cpu(node_id, time_delta, start_time, end_time)
-    mem = await get_node_mem(node_id, time_delta, start_time, end_time)
+    mem, total = await get_node_mem(node_id, time_delta, start_time, end_time)
 
     merge: Dict[str, Metric] = {}
     
@@ -187,6 +218,7 @@ async def get_node_metric(
         node_id=node_id, 
         node_status=node_status, 
         current_job=get_running_job(node_id),
+        total_mem=total,
         resource_usage=resource_usage)
     
     ##preprocess resource usage data by aggregating into 5s intervals using average and sliding window of 5s

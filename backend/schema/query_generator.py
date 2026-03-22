@@ -51,7 +51,7 @@ def get_query_text_node_mem(
     query_text = f"""from(bucket: \"blade-resource\")
         {range_text}
         |> filter(fn: (r) => r[\"_measurement\"] == \"mem\")
-        |> filter(fn: (r) => r[\"_field\"] == \"available\")
+        |> filter(fn: (r) => r[\"_field\"] == \"used\" or r[\"_field\"] == \"total\")
         |> filter(fn: (r) => r[\"host\"] == \"{node_id}\")"""
 
     return query_text
