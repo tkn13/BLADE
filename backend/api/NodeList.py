@@ -58,7 +58,7 @@ def get_node_status(node_id: str) -> str:
     if node_id in states.idleNode:
         return "up"
     elif node_id in states.busyNode:
-        return "alloc"
+        return "busy"
     elif node_id in states.downNode:
         return "dead"
     else:

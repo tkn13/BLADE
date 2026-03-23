@@ -23,7 +23,6 @@ def get_list_of_job_state():
         )
 
     line = result.stdout.strip().splitlines()
-    jobTotal = len(line)
     runningJob = 0
     pendingJob = 0
     jobDetail = []
@@ -58,6 +57,7 @@ def get_list_of_job_state():
                 cpuAlloc=0,
                 time=time
             ))
+    jobTotal=runningJob+pendingJob
     return JobResponse(
         jobTotal=jobTotal,
         runningJob=runningJob,
