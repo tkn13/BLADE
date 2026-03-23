@@ -13,7 +13,7 @@ from api.NodeDetail import get_node_metric
 from api.NodeDetail import get_nodes_metric
 from api.NodeList import get_list_of_node_state
 from api.Job import get_list_of_job_state
-from api.auth import login
+from api.auth import check_system_auth
 
 from schema.Job import JobResponse
 
@@ -32,8 +32,11 @@ class CommonHeaders(BaseModel):
 
 @app.middleware("http")
 async def checkApiKey(request: Request, call_next):
-    
-    if request.method == "OPTIONS" or request.url.path in ["/docs", "/redoc", "/openapi.json"]:
+
+    is_public_docs = request.url.path in ["/docs", "/redoc", "/openapi.json"]
+    is_login_request = request.method == "POST" and request.url.path == "/login"
+
+    if request.method == "OPTIONS" or is_public_docs or is_login_request:
         response = await call_next(request)
         return response
 
@@ -84,11 +87,11 @@ async def jobAll(headers: Annotated[CommonHeaders, Header()]):
     return get_list_of_job_state()
 
 @app.post("/login")
-async def login(headers: Annotated[CommonHeaders, Header()],
+async def login(
     username: str, 
     password: str):
 
-    result = login(username, password)
+    result = check_system_auth(username, password)
 
     if result is not None:
         return JSONResponse(
