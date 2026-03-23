@@ -13,10 +13,9 @@ from api.NodeDetail import get_node_metric
 from api.NodeDetail import get_nodes_metric
 from api.NodeList import get_list_of_node_state
 from api.Job import get_list_of_job_state
-from api.JobDetail import get_job_detail
+from api.auth import login
 
 from schema.Job import JobResponse
-from schema.Job import JobDetailResponse
 
 app = FastAPI()
 
@@ -83,7 +82,21 @@ async def nodeById(headers: Annotated[CommonHeaders, Header()],
 @app.get("/api/metrics/job", response_model=JobResponse)
 async def jobAll(headers: Annotated[CommonHeaders, Header()]):
     return get_list_of_job_state()
- 
-@app.get("/api/metrics/job/{job_id}", response_model=JobDetailResponse)
-async def jobById(job_id, headers: Annotated[CommonHeaders, Header()]):
-    return get_job_detail(job_id)
+
+@app.post("/login")
+async def login(headers: Annotated[CommonHeaders, Header()],
+    username: str, 
+    password: str):
+
+    result = login(username, password)
+
+    if result is not None:
+        return JSONResponse(
+            status_code=200,
+            content={"message": "Login successful", "apikey": result}
+        )
+    else:
+        return JSONResponse(
+            status_code=401,
+            content={"message": "Login failed"}
+        )

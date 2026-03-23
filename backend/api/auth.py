@@ -1,4 +1,11 @@
 import pam
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+apiKey = os.getenv("API_KEY")
+
 
 def check_system_auth(username, password):
 
@@ -6,6 +13,6 @@ def check_system_auth(username, password):
     
     # This sends the credentials to the system's PAM stack
     if p.authenticate(username, password):
-        return True
+        return apiKey
     else:
-        return False
+        return None
