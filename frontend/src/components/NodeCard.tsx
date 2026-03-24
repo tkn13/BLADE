@@ -7,7 +7,7 @@ import { Cpu, HardDrive } from "lucide-react";
 interface NodeCardProp {
     cardTitle: string,
     cardDetail: string,
-    cardState: "Up" | "Busy" | "Down",
+    cardState: "Up" | "Busy" | "Down" | "Error",
     total_mem: number,
     chartData: NodeCardData
 }
@@ -22,10 +22,11 @@ interface NodeCardData {
     }>;
 }
 
-const STATE_COLORS: Record<"Up" | "Busy" | "Down", string> = {
+const STATE_COLORS: Record<"Up" | "Busy" | "Down" | "Error", string> = {
     Up: "bg-emerald-400",
     Busy: "bg-amber-400",
-    Down: "bg-rose-400"
+    Down: "bg-slate-400",
+    Error: "bg-rose-500"
 };
 
 const CHART_CONFIG = {
@@ -45,7 +46,8 @@ const getButtonClassName = (isActive: boolean, isDisabled: boolean) =>
 
 export function NodeCard(props: NodeCardProp) {
     const [selectedMetric, setSelectedMetric] = useState<"cpu" | "mem">("cpu");
-    const isDisabled = props.cardState === "Down";
+    const isDisabled = props.cardState === "Down" || props.cardState === "Error";
+    const overlayClassName = props.cardState === "Error" ? "bg-rose-500/20" : "bg-slate-500/20";
     const yAxisDomain: [number, number] = [0, selectedMetric === "cpu" ? 100 : props.total_mem];
 
     
@@ -139,7 +141,7 @@ export function NodeCard(props: NodeCardProp) {
                 </ChartContainer>
             </CardContent>
             {isDisabled && (
-                <div className="absolute inset-0 bg-rose-500/20 rounded-xl" />
+                <div className={`absolute inset-0 ${overlayClassName} rounded-xl`} />
             )}
         </Card>
     );

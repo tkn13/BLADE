@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Activity, Cpu, HardDrive, Server, ShieldCheck } from "lucide-react";
+import { Activity, Cpu, HardDrive, Server } from "lucide-react";
 import {
     CartesianGrid,
     Cell,
@@ -21,7 +21,7 @@ import { buildApiUrl } from "@/lib/api";
 
 interface NodeMetricData {
     node_id: string;
-    node_status: "Up" | "Busy" | "Down";
+    node_status: "Up" | "Busy" | "Down" | "Error";
     total_mem: number;
     resource_usage: {
         data: Array<{
@@ -49,10 +49,11 @@ interface JobResponse {
     jobDetail: JobDetailResponse[];
 }
 
-const NODE_COLORS: Record<"up" | "busy" | "dead", string> = {
+const NODE_COLORS: Record<"up" | "busy" | "down" | "error", string> = {
     up: "#23B26D",
     busy: "#F2A541",
-    dead: "#E04F5F",
+    down: "#94A3B8",
+    error: "#E04F5F",
 };
 
 const APIS = {
@@ -101,7 +102,9 @@ export function Home() {
         const nodes = nodeData ?? [];
         const upNodes = nodes.filter((node) => node.node_status === "Up").length;
         const busyNodes = nodes.filter((node) => node.node_status === "Busy").length;
-        const deadNodes = nodes.filter((node) => node.node_status === "Down").length;
+        const downNodes = nodes.filter((node) => node.node_status === "Down").length;
+        const errorNodes = nodes.filter((node) => node.node_status === "Error").length;
+        const offlineNodes = downNodes + errorNodes;
         const onlineNodes = upNodes + busyNodes;
 
         const latestUsage = nodes
@@ -139,7 +142,9 @@ export function Home() {
             onlineNodes,
             upNodes,
             busyNodes,
-            deadNodes,
+            downNodes,
+            errorNodes,
+            offlineNodes,
             avgCpu,
             avgMem,
             utilization,
@@ -154,9 +159,10 @@ export function Home() {
         () => [
             { name: "Up", value: cluster.upNodes, color: NODE_COLORS.up },
             { name: "Busy", value: cluster.busyNodes, color: NODE_COLORS.busy },
-            { name: "Down", value: cluster.deadNodes, color: NODE_COLORS.dead },
+            { name: "Down", value: cluster.downNodes, color: NODE_COLORS.down },
+            { name: "Error", value: cluster.errorNodes, color: NODE_COLORS.error },
         ],
-        [cluster.upNodes, cluster.busyNodes, cluster.deadNodes]
+        [cluster.upNodes, cluster.busyNodes, cluster.downNodes, cluster.errorNodes]
     );
 
     const trendData = useMemo(() => {
@@ -255,7 +261,7 @@ export function Home() {
                         <Server className="h-5 w-5 text-cyan-300" />
                     </div>
                     <p className="text-3xl font-bold">{cluster.onlineNodes}</p>
-                    <p className="mt-2 text-xs text-slate-400">{cluster.deadNodes} offline now</p>
+                    <p className="mt-2 text-xs text-slate-400">{cluster.offlineNodes} offline now</p>
                 </article>
 
                 <article className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
