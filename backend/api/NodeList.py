@@ -14,12 +14,12 @@ def get_list_of_node_state() -> NodeListResponse:
    
     idleKeywords = ["idle", "npc", "power_down", "powered_down", "powering_up"]
     busyKeywords = ["alloc", "allocated", "mix", "mixed", "comp", "completing", "resv", "reserved"]
-    downKeywords = ["down", "drain", "draining", "drained", "fail", "maint", "reboot_issued", "reboot_requested", "unk", "unknown", "no_respond", "blocked", "powering_down", "future", "futr", "planned", "perfctrs"]
+    downKeywords = ["down", "down*", "drain", "draining", "drained", "fail", "maint", "reboot_issued", "reboot_requested", "unk", "unknown", "no_respond", "blocked", "powering_down", "future", "futr", "planned", "perfctrs"]
 
     powerOffReasons = ["Auto Power off by Blade"]
 
     result = subprocess.run(["sinfo", "-h", "-o", "%n %T %E"], capture_output=True, text=True)
-
+    
     if result.returncode != 0:
         print(f"Error: {result.stderr}")
         return NodeListResponse([], [], [], []) 
