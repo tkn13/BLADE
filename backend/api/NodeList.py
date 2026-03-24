@@ -8,50 +8,43 @@ class NodeListResponse:
     idleNode: list[str]
     busyNode: list[str]
     downNode: list[str]
+    errorNode: list[str]
 
 def get_list_of_node_state() -> NodeListResponse:
-    # 1. Resolve path relative to THIS file
-    base_path = Path(__file__).parent.resolve()
-    script_path = base_path / ".." / "process" / "listnode.sh"
+   
+    idleKeywords = ["idle", "npc", "power_down", "powered_down", "powering_up"]
+    busyKeywords = ["alloc", "allocated", "mix", "mixed", "comp", "completing", "resv", "reserved"]
+    downKeywords = ["down", "drain", "draining", "drained", "fail", "maint", "reboot_issued", "reboot_requested", "unk", "unknown", "no_respond", "blocked", "powering_down", "future", "futr", "planned", "perfctrs"]
 
-    # 2. Check if the script exists and is executable
-    if not script_path.exists():
-        print(f"Error: Script not found at {script_path}")
-        return NodeListResponse([], [], [])
+    powerOffReasons = ["Auto Power off by Blade"]
 
-    try:
-        # 3. Use 'executable="/bin/bash"' if the script lacks a shebang
-        result = subprocess.run(
-            [str(script_path)], 
-            capture_output=True, 
-            text=True, 
-            check=True
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        print(f"Execution failed: {e}")
-        return NodeListResponse([], [], [])
+    result = subprocess.run(["sinfo", "-h", "-o", "%n %T %E"], capture_output=True, text=True)
 
-    idle, busy, down = [], [], []
+    if result.returncode != 0:
+        print(f"Error: {result.stderr}")
+        return NodeListResponse([], [], [], []) 
+    
+    idle, busy, down, error = [], [], [], []
 
-    # 4. Optimized Parsing
-    for line in result.stdout.splitlines():
-        if ":" not in line:
-            continue
-            
-        state_part, nodes_part = line.split(":", 1)
-        state = state_part.strip().lower()
-        # Clean up nodes, filtering out empty strings
-        nodes = [n.strip() for n in nodes_part.split(",") if n.strip()]
+    line = result.stdout.strip().splitlines()
+    for l in line:
+        data = l.split()
+        nodeName = data[0]
+        nodeState = data[1].lower()
+        nodeReason = " ".join(data[2:]) if len(data) > 2 else ""
 
-        if state == "idle":
-            idle.extend(nodes)
-        elif state == "busy":
-            busy.extend(nodes)
-        else:
-            down.extend(nodes)
+        if nodeState in idleKeywords:
+            idle.append(nodeName)
+        elif nodeState in busyKeywords:
+            busy.append(nodeName)
+        elif nodeState in downKeywords:
+            if nodeReason in powerOffReasons:
+                down.append(nodeName)
+            else:
+                error.append(nodeName)
 
-    return NodeListResponse(idle, busy, down)
 
+    
 # Utility to get a node's status as a string: 'up', 'alloc', or 'dead'
 def get_node_status(node_id: str) -> str:
     states = get_list_of_node_state()
@@ -61,5 +54,7 @@ def get_node_status(node_id: str) -> str:
         return "Busy"
     elif node_id in states.downNode:
         return "Down"
+    elif node_id in states.errorNode:
+        return "Error"
     else:
-        return "unknown"
+        return "Unknown"

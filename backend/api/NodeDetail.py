@@ -181,10 +181,10 @@ async def get_node_metric(
     ):
     
     node_status = get_node_status(node_id)
-    if node_status == "dead":
+    if node_status == "Down" or node_status == "Error":
         return NodeMetricResponse(
             node_id=node_id, 
-            node_status="dead", 
+            node_status=node_status, 
             current_job=[], 
             resource_usage=ResourceUsage(start_time=None, end_time=None, data_amount=0, data=[])
             )
