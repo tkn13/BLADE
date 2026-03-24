@@ -7,7 +7,7 @@ import { Cpu, HardDrive } from "lucide-react";
 interface NodeCardProp {
     cardTitle: string,
     cardDetail: string,
-    cardState: "up" | "busy" | "dead",
+    cardState: "Up" | "Busy" | "Down",
     total_mem: number,
     chartData: NodeCardData
 }
@@ -22,10 +22,10 @@ interface NodeCardData {
     }>;
 }
 
-const STATE_COLORS: Record<"up" | "busy" | "dead", string> = {
-    up: "bg-emerald-400",
-    busy: "bg-amber-400",
-    dead: "bg-rose-400"
+const STATE_COLORS: Record<"Up" | "Busy" | "Down", string> = {
+    Up: "bg-emerald-400",
+    Busy: "bg-amber-400",
+    Down: "bg-rose-400"
 };
 
 const CHART_CONFIG = {
@@ -45,7 +45,7 @@ const getButtonClassName = (isActive: boolean, isDisabled: boolean) =>
 
 export function NodeCard(props: NodeCardProp) {
     const [selectedMetric, setSelectedMetric] = useState<"cpu" | "mem">("cpu");
-    const isDisabled = props.cardState === "dead";
+    const isDisabled = props.cardState === "Down";
     const yAxisDomain: [number, number] = [0, selectedMetric === "cpu" ? 100 : props.total_mem];
 
     

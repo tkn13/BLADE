@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Table, TableCaption, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { useFetch } from "@/hook/useFetch"
 import { Loading } from "@/components/Loading"
+import { useAuth } from "@/hook/useAuth"
+import { buildApiUrl } from "@/lib/api"
 
 interface JobDetailResponse{
     jobId: string
@@ -28,16 +30,16 @@ export function Job(){
     const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
     const isInitialLoad = useRef(true);
 
-    const apikey_head = "648a4e670d379e9225ac45d61c6daf01"
-    const requestOptions = {
+    const { apiKey } = useAuth();
+    const requestOptions = useMemo(() => ({
         method: "GET",
         headers: {
             "Content-Type": "application/json",
-            "apikey": apikey_head
+            "apikey": apiKey ?? ""
         },
-    }
+    }), [apiKey]);
 
-    const baseurl = "http://10.42.7.254:8001/api/metrics/job"
+    const baseurl = buildApiUrl("/api/metrics/job")
 
     const { data, error, isLoading } = useFetch<JobResponse>(baseurl, requestOptions, 5000);
 

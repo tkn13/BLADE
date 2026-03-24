@@ -1,13 +1,14 @@
 import { useState, useMemo, useRef, useEffect } from "react"
 import { useFetch } from "../hook/useFetch"
 import { NodeCard } from "../components/NodeCard"
-
+import { useAuth } from "../hook/useAuth"
+import { buildApiUrl } from "../lib/api"
 import { Loading } from "@/components/Loading"
 
 
 interface NodeMetricData {
     node_id: string;
-    node_status: "up" | "busy" | "dead";
+    node_status: "Up" | "Busy" | "Down";
     current_job: string[];
     total_mem: number;
     resource_usage: {
@@ -28,44 +29,23 @@ export function Node() {
     const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
     const isInitialLoad = useRef(true);
 
-    const apikey_head = "648a4e670d379e9225ac45d61c6daf01"
     const url_option = {
         node_ids: "blade-n1,blade-n2,blade-n3,blade-n4,blade-n5,blade-n6,blade-n7,blade-n8",
         time_delta: "-5m"
     }
+   
+    const { apiKey } = useAuth();
     const requestOptions = useMemo(() => ({
         method: "GET",
         headers: {
             "Content-Type": "application/json",
-            "apikey": apikey_head
+            "apikey": apiKey ?? ""
         },
+    }), [apiKey]);
 
-    }), [apikey_head])
+    const baseurl = buildApiUrl("/api/metrics/node/batch", url_option);
 
-    /*
-    this endpoint is designed to return an array of NodeMetricData
-    e.g.
-    [
-        {
-            "data_amount": 10,
-            "start_time": "2024-06-01T12:00:00Z",
-            "end_time": "2024-06-01T12:05:00Z",
-            "resource_usage": {
-                "data": [
-                    {
-                        "timestamp": "2024-06-01T12:00:00Z",
-                        "cpu": 30,
-                        "mem": 2048
-                    },
-                    ...
-                ]
-            }
-        }
-    ]
-    */
-    const baseUrl = "http://10.42.7.254:8001/api/metrics/node/batch" + "?" + new URLSearchParams(url_option).toString()
-    
-    const {data, isLoading} = useFetch<NodeMetricData[]>(baseUrl, requestOptions, 10000);
+    const {data, isLoading} = useFetch<NodeMetricData[]>(baseurl, requestOptions, 10000);
 
     useEffect(() => {
         if (!isLoading && data && isInitialLoad.current) {
@@ -112,7 +92,7 @@ export function Node() {
                         />
                     </form>
                 </div>
-                <main className="grid grid-cols-3 px-2 py-4">
+                <main className="grid grid-cols-1 gap-4 px-2 py-4 sm:grid-cols-2 xl:grid-cols-3">
                     {filteredData.length > 0 ? (
                         filteredData.map((item) => (
                             <NodeCard
@@ -125,7 +105,7 @@ export function Node() {
                             />
                         ))
                     ) : (
-                        <p className="p-4 col-span-3 text-slate-400">No nodes found.</p>
+                        <p className="col-span-full p-4 text-slate-400">No nodes found.</p>
                     )}
                 </main>
             </div>

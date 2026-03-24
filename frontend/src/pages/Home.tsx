@@ -17,10 +17,11 @@ import {
 import { Loading } from "@/components/Loading";
 import { useFetch } from "@/hook/useFetch";
 import { useAuth } from "@/hook/useAuth";
+import { buildApiUrl } from "@/lib/api";
 
 interface NodeMetricData {
     node_id: string;
-    node_status: "up" | "busy" | "dead";
+    node_status: "Up" | "Busy" | "Down";
     total_mem: number;
     resource_usage: {
         data: Array<{
@@ -55,14 +56,11 @@ const NODE_COLORS: Record<"up" | "busy" | "dead", string> = {
 };
 
 const APIS = {
-    key: "648a4e670d379e9225ac45d61c6daf01",
-    node:
-        "http://10.42.7.254:8001/api/metrics/node/batch?" +
-        new URLSearchParams({
-            node_ids: "blade-n1,blade-n2,blade-n3,blade-n4,blade-n5,blade-n6,blade-n7,blade-n8",
-            time_delta: "-5m",
-        }).toString(),
-    job: "http://10.42.7.254:8001/api/metrics/job",
+    node: buildApiUrl("/api/metrics/node/batch", {
+        node_ids: "blade-n1,blade-n2,blade-n3,blade-n4,blade-n5,blade-n6,blade-n7,blade-n8",
+        time_delta: "-5m",
+    }),
+    job: buildApiUrl("/api/metrics/job"),
 };
 
 function formatClockLabel(raw: string | undefined): string {
@@ -74,17 +72,17 @@ function formatClockLabel(raw: string | undefined): string {
 }
 
 export function Home() {
-    const { user } = useAuth();
+    const { user, apiKey } = useAuth();
 
     const requestOptions = useMemo(
         () => ({
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                apikey: APIS.key,
+                apikey: apiKey ?? "",
             },
         }),
-        []
+        [apiKey]
     );
 
     const {
@@ -101,9 +99,9 @@ export function Home() {
 
     const cluster = useMemo(() => {
         const nodes = nodeData ?? [];
-        const upNodes = nodes.filter((node) => node.node_status === "up").length;
-        const busyNodes = nodes.filter((node) => node.node_status === "busy").length;
-        const deadNodes = nodes.filter((node) => node.node_status === "dead").length;
+        const upNodes = nodes.filter((node) => node.node_status === "Up").length;
+        const busyNodes = nodes.filter((node) => node.node_status === "Busy").length;
+        const deadNodes = nodes.filter((node) => node.node_status === "Down").length;
         const onlineNodes = upNodes + busyNodes;
 
         const latestUsage = nodes
@@ -130,6 +128,12 @@ export function Home() {
             latestUsage.length > 0
                 ? latestUsage.reduce((sum, item) => sum + item.cpu, 0) / (onlineNodes > 0 ? onlineNodes : 1)
                 : 0;
+        
+        let totalPower = 0;
+        for (const item of latestUsage) {
+            const node_util = item.cpu / 100;
+            totalPower += 27 + (90 - 27) * (2*node_util - node_util**1.4);
+        }
 
         return {
             onlineNodes,
@@ -139,6 +143,7 @@ export function Home() {
             avgCpu,
             avgMem,
             utilization,
+            totalPower,
             runningJob: jobData?.runningJob ?? 0,
             pendingJob: jobData?.pendingJob ?? 0,
             jobTotal: jobData?.jobTotal ?? 0,
@@ -147,9 +152,9 @@ export function Home() {
 
     const nodeStateData = useMemo(
         () => [
-            { name: "Ready", value: cluster.upNodes, color: NODE_COLORS.up },
+            { name: "Up", value: cluster.upNodes, color: NODE_COLORS.up },
             { name: "Busy", value: cluster.busyNodes, color: NODE_COLORS.busy },
-            { name: "Offline", value: cluster.deadNodes, color: NODE_COLORS.dead },
+            { name: "Down", value: cluster.deadNodes, color: NODE_COLORS.dead },
         ],
         [cluster.upNodes, cluster.busyNodes, cluster.deadNodes]
     );
@@ -184,8 +189,8 @@ export function Home() {
 
             timeline.push({
                 time: formatClockLabel(samples[0].time),
-                cpu: samples.reduce((sum, point) => sum + point.cpu, 0) / samples.length,
-                mem: samples.reduce((sum, point) => sum + point.memPercent, 0) / samples.length,
+                cpu: (samples.reduce((sum, point) => sum + point.cpu, 0) / samples.length).toFixed(2) as unknown as number,
+                mem: (samples.reduce((sum, point) => sum + point.memPercent, 0) / samples.length).toFixed(2) as unknown as number,
             });
         }
 
@@ -220,13 +225,17 @@ export function Home() {
                     <div>
                         <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">BLADE Compute</p>
                         <h1 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">
-                            Live Operations Center
+                            Resource Monitoring Center 
                         </h1>
                         <p className="mt-3 max-w-2xl text-sm text-slate-300 sm:text-base">
                             Welcome {user ?? "operator"}. Here's the current status of your compute cluster.
                         </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 text-right text-sm sm:grid-cols-2 lg:min-w-[380px]">
+                    <div className="grid grid-cols-2 gap-3 text-right text-sm sm:grid-cols-3 lg:min-w-[380px]">
+                        <div className="rounded-xl border border-emerald-300/25 bg-emerald-500/10 p-3">
+                            <p className="text-emerald-100">Power Usage</p>
+                            <p className="text-2xl font-semibold text-emerald-50">{cluster.totalPower.toFixed(1)} W</p>
+                        </div>
                         <div className="rounded-xl border border-amber-300/25 bg-amber-500/10 p-3">
                             <p className="text-amber-100">Utilization</p>
                             <p className="text-2xl font-semibold text-amber-50">{cluster.utilization.toFixed(0)}%</p>
@@ -284,10 +293,7 @@ export function Home() {
                 <article className="rounded-2xl border border-white/10 bg-slate-900/70 p-5 xl:col-span-2">
                     <div className="mb-2 flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-slate-100">Node State Spread</h3>
-                        <ShieldCheck className="h-5 w-5 text-cyan-300" />
                     </div>
-                    <p className="mb-4 text-sm text-slate-400">Distribution of ready, busy, and offline nodes.</p>
-
                     <div className="h-72">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -307,7 +313,7 @@ export function Home() {
                                 <ReTooltip
                                     formatter={(value) => [value, "nodes"]}
                                     contentStyle={{
-                                        backgroundColor: "#0f172a",
+                                        backgroundColor: "#f0f2f2",
                                         border: "1px solid rgba(148,163,184,0.25)",
                                         borderRadius: "10px",
                                     }}
@@ -318,16 +324,12 @@ export function Home() {
                 </article>
 
                 <article className="rounded-2xl border border-white/10 bg-slate-900/70 p-5 xl:col-span-3">
-                    <h3 className="text-lg font-semibold text-slate-100">Resource Trend (5-minute window)</h3>
-                    <p className="mb-4 text-sm text-slate-400">
-                        Cluster-average CPU and memory percentage over recent samples.
-                    </p>
-
+                    <h3 className="text-lg font-semibold text-slate-100 mb-5">Resource Trend (5-minute window)</h3>
                     <div className="h-72">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={trendData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
-                                <XAxis dataKey="time" stroke="#94a3b8" />
+                                <XAxis dataKey="time" stroke="#94a3b8" tick={false} />
                                 <YAxis domain={[0, 100]} stroke="#94a3b8" unit="%" />
                                 <ReTooltip
                                     contentStyle={{
@@ -344,6 +346,7 @@ export function Home() {
                                     strokeWidth={2.5}
                                     dot={false}
                                     name="CPU Avg"
+                                    isAnimationActive={false}
                                 />
                                 <Line
                                     type="monotone"
@@ -352,6 +355,7 @@ export function Home() {
                                     strokeWidth={2.5}
                                     dot={false}
                                     name="Memory Avg"
+                                    isAnimationActive={false}
                                 />
                             </LineChart>
                         </ResponsiveContainer>
