@@ -57,7 +57,44 @@ export function Node() {
 
     const filteredData = useMemo(() => {
         if (!data) return [];
-        return data.filter(item => item.node_id.toLowerCase().includes(searchQuery.toLowerCase()));
+        const query = searchQuery.trim();
+        if (!query) return data;
+
+        const exactMatches = new Set<string>();
+        const partialMatches: string[] = [];
+
+        // Supports tokens like: blade-n1, blade-n[5-7]
+        for (const rawToken of query.split(",")) {
+            const token = rawToken.trim();
+            if (!token) continue;
+
+            const rangeMatch = token.match(/^([^\[\]]*)\[(\d+)\s*-\s*(\d+)\]$/);
+            if (rangeMatch) {
+                const prefix = rangeMatch[1];
+                const startRaw = rangeMatch[2];
+                const endRaw = rangeMatch[3];
+                const start = Number(startRaw);
+                const end = Number(endRaw);
+                const width = Math.max(startRaw.length, endRaw.length);
+
+                if (start <= end) {
+                    for (let i = start; i <= end; i++) {
+                        const nodeId = `${prefix}${i.toString().padStart(width, "0")}`;
+                        exactMatches.add(nodeId.toLowerCase());
+                    }
+                }
+                continue;
+            }
+
+            partialMatches.push(token.toLowerCase());
+        }
+
+        return data.filter((node) => {
+            const nodeId = node.node_id.toLowerCase();
+            if (exactMatches.has(nodeId)) return true;
+            return partialMatches.some((token) => nodeId.includes(token));
+        });
+
     }, [data, searchQuery]);  
 
     if (isLoading && !hasLoadedOnce) {

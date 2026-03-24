@@ -48,9 +48,9 @@ export function Login() {
                 className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-linear-to-r from-slate-900/90 via-slate-800/80 to-slate-900/85 p-8 shadow-2xl shadow-cyan-900/20 backdrop-blur"
             >
                 <div className="mb-8">
-                    <p className="text-center text-xs uppercase tracking-[0.3em] text-cyan-300">Blade compute fabric</p>
+                    <p className="text-center text-xs uppercase tracking-[0.3em] text-cyan-300">Blade compute</p>
                     <h1 className="mt-3 text-center text-3xl font-bold text-slate-100">Operations Login</h1>
-                    <p className="mt-2 text-center text-sm text-slate-400">Sign in to access cluster telemetry and job control.</p>
+                    <p className="mt-2 text-center text-sm text-slate-400">Sign in to access cluster telemetry.</p>
                 </div>
                 
                 <div className="mb-6">
