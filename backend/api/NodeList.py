@@ -56,10 +56,10 @@ def get_list_of_node_state() -> NodeListResponse:
 def get_node_status(node_id: str) -> str:
     states = get_list_of_node_state()
     if node_id in states.idleNode:
-        return "up"
+        return "Up"
     elif node_id in states.busyNode:
-        return "busy"
+        return "Busy"
     elif node_id in states.downNode:
-        return "dead"
+        return "Down"
     else:
         return "unknown"

@@ -229,6 +229,7 @@ async def get_node_metric(
 
     
     ##preprocess resource usage data by aggregating into 5s intervals using average and sliding window of 5s
+    
     if return_val.resource_usage.data:
         aggregated_data = []
         window_size = 5  # seconds
@@ -262,7 +263,7 @@ async def get_node_metric(
         return_val.resource_usage.data = aggregated_data
     
     return_val.resource_usage.data_amount = len(return_val.resource_usage.data) if return_val.resource_usage else 0
-
+    
     return return_val
 
 async def get_nodes_metric(
