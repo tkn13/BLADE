@@ -42,6 +42,13 @@ def get_list_of_node_state() -> NodeListResponse:
                 down.append(nodeName)
             else:
                 error.append(nodeName)
+    
+    return NodeListResponse(
+        idleNode=idle,
+        busyNode=busy,
+        downNode=down,
+        errorNode=error
+    )
 
 
     
