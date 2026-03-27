@@ -38,32 +38,35 @@ void power_off_node(const std::string& nodename, const std::string& host) {
 }
 
 void check_node_control(std::vector<NodeState> nodes, std::vector<JobState> jobs) {
-    bool has_pending_jobs = std::any_of(jobs.begin(), jobs.end(), [](const JobState& j) {
-        return j.job_state == "PENDING";
-    });
 
-    // 1. Power On Logic (Reactive)
-    if (has_pending_jobs) {
-        std::vector<NodeState*> off_pool;
-        for (auto& node : nodes) {
-            // Check if node is in a non-working state (down, drained, powered_down, etc.)
-            if (NODE_HOST_MAP.count(node.node_id) && 
-                node.node_state != "idle" && 
-                node.node_state != "mixed" && 
-                node.node_state != "allocated") {
-                off_pool.push_back(&node);
-            }
-        }
-
-        if (!off_pool.empty()) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_int_distribution<> dis(0, off_pool.size() - 1);
-            
-            NodeState* selected = off_pool[dis(gen)];
-            power_on_node(selected->node_id, NODE_HOST_MAP.at(selected->node_id));
+    // 1. Power On Logic (Conservative)
+    // check if any job is pending and this job to queue
+    //calulate the total cpu request of the job in the queue
+    // open node until the total cpu request is satisfied
+    // node is open randomly to balance the load
+    int total_cpu_request = 0;
+    for (const auto& job : jobs) {
+        if (job.job_state == "PENDING") {
+            total_cpu_request += job.job_cpus;
         }
     }
+
+    //each node have 2 cpus, so we need to open total_cpu_request / 2 nodes
+    int nodes_to_open = (total_cpu_request + 1) / 2; //round up
+    std::vector<std::string> down_nodes;
+    for (const auto& node : nodes) {
+        if (node.node_state != "idle" && NODE_HOST_MAP.count(node.node_id)) {
+            down_nodes.push_back(node.node_id);
+        }
+    }
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(down_nodes.begin(), down_nodes.end(), g);
+    for(int i = 0; i < std::min(nodes_to_open, (int)down_nodes.size()); i++){
+        power_on_node(down_nodes[i], NODE_HOST_MAP.at(down_nodes[i]));
+    }
+
 
     // 2. Power Off Logic (Aggressive)
     for (const auto& node : nodes) {
@@ -71,6 +74,7 @@ void check_node_control(std::vector<NodeState> nodes, std::vector<JobState> jobs
             power_off_node(node.node_id, NODE_HOST_MAP.at(node.node_id));
         }
     }
+    
 }
 
 void node_control() {
