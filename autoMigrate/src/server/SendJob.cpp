@@ -16,7 +16,8 @@ void send(std::vector<std::string> input) {
     " -j " + input[0] +
     " -a \"" + input[1] + "\" "
     " -n " + input[2] +
-    " -p " + input[3];
+    " -p " + input[3] +
+    " -t " + input[4];
 
     std::cout << "[EXEC]" << command << std::endl;
     system(command.c_str());
@@ -29,6 +30,7 @@ void send_job(int clientSocket) {
         "Enter Argument of your program: ",
         "Enter number of nodes: ",
         "Enter number of processes: ",
+        "Enter Job Name: ",
         "exit"
     };
 

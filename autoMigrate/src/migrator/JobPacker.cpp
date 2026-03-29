@@ -8,6 +8,7 @@
 #include <set>
 #include <cstdlib>
 #include <iostream>
+#include <algorithm>
 
 void rearrangeJobs(std::vector<JobDetail>& jobDetails) {
     NodeList& nodeList = NodeList::getInstance();
@@ -35,6 +36,11 @@ void rearrangeJobs(std::vector<JobDetail>& jobDetails) {
     for (const auto& node : newNodes) {
         nodecapacities.push_back(node.getCpus());
     }
+
+    // Sort jobs by CPU requirements in descending order
+    std::sort(jobDetails.begin(), jobDetails.end(), [](const JobDetail& a, const JobDetail& b) {
+        return a.cpus > b.cpus;
+    });
 
     for (auto& job : jobDetails) {
         for (size_t i = 0; i < newNodes.size(); ++i) {
