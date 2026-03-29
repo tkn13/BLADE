@@ -11,7 +11,7 @@
 
 void send(std::vector<std::string> input) {
 
-    std::string command = "sudo -i -u " + input[4] +
+    std::string command = "sudo -i -u " + input[5] +
     " env PATH=$PATH sendJob" +
     " -j " + input[0] +
     " -a \"" + input[1] + "\" "
