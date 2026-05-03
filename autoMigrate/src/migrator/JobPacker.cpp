@@ -8,21 +8,44 @@
 #include <set>
 #include <cstdlib>
 #include <iostream>
+#include <algorithm>
 
 void rearrangeJobs(std::vector<JobDetail>& jobDetails) {
     NodeList& nodeList = NodeList::getInstance();
     const std::vector<Node>& nodes = nodeList.getNodes();
     std::vector<int> nodecapacities;
 
+    //create new node list considering node from jobDetails srcNode
+    std::set<std::string> srcNodes;
+    for (const auto& job : jobDetails) {
+        srcNodes.insert(job.srcNode.getNodeName());
+    }
+
+	std::vector<Node> newNodes;
+    for (const auto& node : srcNodes) {
+        newNodes.push_back(nodeList.getNodeByName(node));
+    }
+
+    std::cout << "[INFO] Considering nodes for migration: ";
+    for (const auto& node : newNodes) {
+        std::cout << node.getNodeName() << " ";
+    }
+    std::cout << std::endl;
+
     // Initialize node capacities
-    for (const auto& node : nodes) {
+    for (const auto& node : newNodes) {
         nodecapacities.push_back(node.getCpus());
     }
 
+    // Sort jobs by CPU requirements in descending order
+    std::sort(jobDetails.begin(), jobDetails.end(), [](const JobDetail& a, const JobDetail& b) {
+        return a.cpus > b.cpus;
+    });
+
     for (auto& job : jobDetails) {
-        for (size_t i = 0; i < nodes.size(); ++i) {
+        for (size_t i = 0; i < newNodes.size(); ++i) {
             if (job.cpus <= nodecapacities[i]) {
-                job.destNode = nodes[i];
+                job.destNode = newNodes[i];
                 nodecapacities[i] -= job.cpus;
                 break;
             }
@@ -45,8 +68,8 @@ bool migrateDecision(const std::vector<JobDetail>& jobDetails) {
 void migrator(const std::vector<JobDetail>& jobDetails) {
     for (const auto& job : jobDetails) {
         if (job.srcNode.getNodeName() != job.destNode.getNodeName()) {
-            std::string command = "sudo -u " + job.user + " " + MIGRATE_CMD_LOCATION + " " + job.jobId + " " + job.destNode.getNodeName();
-            std::cout << "Executing command: " << command << std::endl;
+            std::string command = "sudo -i -u " + job.user + " " + MIGRATE_CMD_LOCATION + " " + job.jobId + " " + job.destNode.getNodeName();
+            std::cout << "[EXEC]" << command << std::endl;
             system(command.c_str());
         }
     }

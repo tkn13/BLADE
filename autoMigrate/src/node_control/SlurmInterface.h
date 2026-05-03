@@ -8,6 +8,7 @@ class JobState {
     public:
         std::string job_id;
         std::string job_state;
+        int job_cpus;
     
         JobState() : job_id(""), job_state("") {}
 };

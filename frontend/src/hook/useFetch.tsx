@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface FetchState<T> {
     data: T | null;
@@ -6,53 +6,86 @@ interface FetchState<T> {
     error: string | null;
 }
 
-
-//temp zone
-const generateData = (startMin: number, endMin: number, baseValue: number)=> {
-    const result = [];
-    console.log("Gen data was called")
-    for (let i = startMin; i <= endMin; i++) {
-        const timestamp = `10:${i.toString().padStart(2, '0')}`;
-        const value = baseValue + Math.floor(Math.random() * 11) - 5;
-        result.push({ time: timestamp, cpu: value, ram: value + 10 });
-    }
-    return result;
-};
-// end temp zone
-
-export function useFetch<T>(url: string): FetchState<T> {
+export function useFetch<T>(
+    url: string,
+    options?: {
+        method?: string;
+        headers?: Record<string, string>;
+        body?: BodyInit;
+    },
+    refetchIntervalMs?: number
+): FetchState<T> {
 
     const [data, setData] = useState<T | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const requestMethod = useMemo(() => options?.method ?? "GET", [options?.method]);
+    const requestHeaders = useMemo(() => options?.headers, [JSON.stringify(options?.headers ?? {})]);
+    const requestBody = useMemo(() => options?.body, [typeof options?.body === "string" ? options.body : null]);
 
     useEffect( () => {
-
-        const abortController = new AbortController();
+        let isActive = true;
+        let abortController: AbortController | null = null;
 
         const fetchData = async () => {
+            abortController?.abort();
+            abortController = new AbortController();
             setIsLoading(true);
 
             try {
 
-                const response = generateData(0, 30, 80);
+                console.log("Fetching data from:", url);
 
-                setData(response as T);
+                const response = await fetch(url, {
+                    method: requestMethod,
+                    headers: requestHeaders,
+                    body: requestBody,
+                    signal: abortController.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+
+                const result = await response.json() as T;
+
+                console.log("Fetch response:", response);
+
+                if (!isActive) return;
+                setData(result);
                 setError(null);
 
             } catch (err: any) {
+                if (!isActive) return;
+                console.error("Fetch error:", err);
                 if (err.name !== 'AbortError'){
                     setError(err.message || "Something went wrong");
                 }
             } finally {
+                if (!isActive) return;
                 setIsLoading(false);
             }
         };
 
-        fetchData()
+        fetchData();
 
-        return () => abortController.abort();
-    }, [url]);
+        const shouldPoll = Boolean(refetchIntervalMs && refetchIntervalMs > 0);
+
+        if (!shouldPoll) {
+            return () => {
+                isActive = false;
+                abortController?.abort();
+            };
+        }
+
+        const intervalId = window.setInterval(fetchData, refetchIntervalMs);
+
+        return () => {
+            isActive = false;
+            window.clearInterval(intervalId);
+            abortController?.abort();
+        };
+    }, [url, requestMethod, requestHeaders, requestBody, refetchIntervalMs]);
 
     return {data, isLoading, error};
 }

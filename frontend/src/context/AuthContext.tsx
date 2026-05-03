@@ -2,9 +2,11 @@ import { createContext, useState, useEffect } from 'react';
 import React from 'react';
 
 import type { AuthContextType } from '../model/AuthContextModel';
+import { buildApiUrl } from '../lib/api';
 
 export const AuthContext = createContext<AuthContextType>({
     user: null,
+    apiKey: null,
     login: undefined,
     logout: undefined,
     isLoading: false
@@ -13,37 +15,47 @@ export const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
 
     const [user, setUser] = useState<string | null>(null);
+    const [apiKey, setApiKey] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
 
-        //check local storage for user data and set user state if found
-        //delay to simulate loading time
-        setTimeout(() => {
-            const storedUser = localStorage.getItem("user");
-            console.log("AuthProvider: checking local storage, found user:", storedUser);
-            if(storedUser){
-                setUser(storedUser);
-            }
-            setIsLoading(false);
-        }, 3000);
+        const storedUser = localStorage.getItem("user");
+        const storedApiKey = localStorage.getItem("apikey");
+        if(storedUser && storedApiKey){
+            setUser(storedUser);
+            setApiKey(storedApiKey);
+        }
+        setIsLoading(false);
 
     }, []);
     console.log("AuthProvider rendered, user:", user, "isLoading:", isLoading);
 
     async function login(username: string, password: string) {
-        
+
         setIsLoading(true);
-        // Simulate an API call to validate credentials by delaying for 1 second
-        await new Promise(resolve => setTimeout(resolve, 1000));
 
         try {
-            if(password === "password"){
-                setUser(username);
-                localStorage.setItem("user", username);
-            } else {
-                throw new Error("Invalid credentials");
+            const response = await fetch(
+                buildApiUrl("/login", { username, password }),
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            const payload = await response.json() as { message?: string; apikey?: string };
+
+            if (!response.ok || !payload.apikey) {
+                throw new Error(payload.message || "Invalid credentials");
             }
+
+            setUser(username);
+            setApiKey(payload.apikey);
+            localStorage.setItem("user", username);
+            localStorage.setItem("apikey", payload.apikey);
         } catch (error) {
             console.error("Login error:", error);
             throw error;
@@ -55,11 +67,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
     async function logout() {
         setUser(null);
+        setApiKey(null);
         localStorage.removeItem("user");
+        localStorage.removeItem("apikey");
     }
 
     return (
-        <AuthContext.Provider value={{user, login, logout, isLoading}}>
+        <AuthContext.Provider value={{user, apiKey, login, logout, isLoading}}>
             {children}
         </AuthContext.Provider>
     );

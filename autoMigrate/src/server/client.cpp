@@ -40,7 +40,7 @@ int handleJobSubmission(int clientSocket, const char* initialMessage) {
         }
 
         if (std::strcmp(buffer, "exit") == 0) {
-            std::cout << "Got Exit command, send username of the client..." << std::endl;
+            std::cout << "Task sent!" << std::endl;
             char* username = get_username();
             send(clientSocket, username, sizeof(username)/sizeof(username[0]), 0);
             return 0;

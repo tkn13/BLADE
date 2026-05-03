@@ -58,7 +58,7 @@ std::vector<JobState> get_job_state(){
             (char*)"squeue", 
             (char*)"-h", 
             (char*)"-o", 
-            (char*)"%i %T", 
+            (char*)"%i %T %C", 
             nullptr
         };
     
@@ -76,12 +76,16 @@ std::vector<JobState> get_job_state(){
             std::stringstream lineStream(line);
             std::string job_id;
             std::string job_state;
+            std::string job_cpus_str;
 
-            lineStream >> job_id >> job_state;
+            lineStream >> job_id >> job_state >> job_cpus_str;
+
+            int job_cpus = std::stoi(job_cpus_str);
 
             JobState js;
             js.job_id = job_id;
             js.job_state = job_state;
+            js.job_cpus = job_cpus;
 
             Job_State.push_back(js);
 

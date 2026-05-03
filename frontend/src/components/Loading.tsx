@@ -19,7 +19,7 @@ export function Loading(props: LoadingPagesProps) {
     const sizeClass = {
         small: "h-8 w-8",
         medium: "h-16 w-16",
-        large: "h-24 w-24",
+        large: "flex-grow h-32 w-32",
         full: "h-screen w-screen"
     }[props.size || "medium"] || "h-16 w-16";
 
@@ -34,7 +34,7 @@ export function Loading(props: LoadingPagesProps) {
     // end of temp zone
 
     return (
-    <div className={`flex flex-col items-center justify-center ${sizeClass} bg-gray-100`}>
+    <div className={`flex flex-col items-center justify-center ${sizeClass} bg-slate-950`}>
         <svg 
       width={totalWidth} 
       height={totalHeight} 
@@ -49,14 +49,14 @@ export function Loading(props: LoadingPagesProps) {
                     y={rowIndex * (reactangleSize + space)}
                     width={reactangleSize}
                     height={reactangleSize}
-                    fill={avtiveNode.includes(rowIndex * col + colIndex) ? "#4A90E2" : "#E5E7EB"}
+                    fill={avtiveNode.includes(rowIndex * col + colIndex) ? "#22d3ee" : "#1e293b"}
                     className="animate-pulse"
                 />
             ))
         ))}
     </svg>
 
-        <p className="mt-4 text-lg">{message}</p>
+        <p className="mt-4 text-lg text-slate-300">{message}</p>
 
     </div>)
 }

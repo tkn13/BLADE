@@ -71,3 +71,31 @@ export default defineConfig([
   },
 ])
 ```
+
+## Docker
+
+This project includes a production Docker setup using a multi-stage build:
+
+1. Build the app with Node.js
+2. Serve the static files with Nginx
+
+### Build and run with Docker
+
+```bash
+docker build -t blade-frontend .
+docker run -d --name blade-frontend -p 8080:80 blade-frontend
+```
+
+Open `http://localhost:8080`.
+
+### Run with Docker Compose
+
+```bash
+docker compose up -d --build
+```
+
+To stop:
+
+```bash
+docker compose down
+```

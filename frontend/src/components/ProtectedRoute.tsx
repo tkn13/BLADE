@@ -4,7 +4,7 @@ import { useAuth } from "../hook/useAuth";
 import { Loading } from "./Loading";
 
 export function ProtectedRoute() {
-    const { user, isLoading } = useAuth();
+    const { user, apiKey, isLoading } = useAuth();
 
     console.log("ProtectedRoute: user =", user, "isLoading =", isLoading);
 
@@ -12,7 +12,7 @@ export function ProtectedRoute() {
         console.log("ProtectedRoute: still loading...");
         return <Loading message="Loading..." size="full" />;
     }
-    if (!user) {
+    if (!user || !apiKey) {
         console.log("ProtectedRoute: no user, redirecting to login");
         return <Navigate to="/login" replace />;
     }
